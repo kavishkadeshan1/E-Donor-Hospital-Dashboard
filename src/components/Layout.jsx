@@ -1,0 +1,82 @@
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import './Layout.css'
+
+function Layout({ children, onLogout }) {
+  const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const adminData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+
+  const menuItems = [
+    { path: '/dashboard', icon: '📊', label: 'Dashboard' },
+    { path: '/donors', icon: '👥', label: 'Donors' },
+    { path: '/blood-requests', icon: '🩸', label: 'Blood Requests' },
+    { path: '/inventory', icon: '📦', label: 'Inventory' },
+    { path: '/notifications', icon: '🔔', label: 'Notifications' },
+    { path: '/profile', icon: '🏥', label: 'Hospital Profile' },
+    { path: '/settings', icon: '⚙️', label: 'Settings' }
+  ]
+
+  return (
+    <div className="layout">
+      <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-header">
+          <div className="logo">
+            <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="8" fill="#dc2626"/>
+              <path d="M24 14V34M14 24H34" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+            </svg>
+            {sidebarOpen && <span>E-Donor</span>}
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          {menuItems.map(item => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              {sidebarOpen && <span className="nav-label">{item.label}</span>}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <button onClick={onLogout} className="logout-btn">
+            <span className="nav-icon">🚪</span>
+            {sidebarOpen && <span>Logout</span>}
+          </button>
+        </div>
+      </aside>
+
+      <div className="main-content">
+        <header className="header">
+          <button 
+            className="toggle-sidebar-btn"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            ☰
+          </button>
+          
+          <div className="header-right">
+            <div className="admin-info">
+              <span className="admin-name">{adminData.name || 'Hospital Admin'}</span>
+              <span className="admin-role">Administrator</span>
+            </div>
+            <div className="admin-avatar">
+              {(adminData.name || 'H')[0].toUpperCase()}
+            </div>
+          </div>
+        </header>
+
+        <main className="content">
+          {children}
+        </main>
+      </div>
+    </div>
+  )
+}
+
+export default Layout

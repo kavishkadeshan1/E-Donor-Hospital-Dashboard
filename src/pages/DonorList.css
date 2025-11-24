@@ -1,0 +1,119 @@
+.donor-list {
+  max-width: 1400px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: var(--text-dark);
+}
+
+.page-header p {
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.filters-card {
+  margin-bottom: 20px;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.search-box {
+  flex: 1;
+}
+
+.search-box input {
+  width: 100%;
+}
+
+.filter-group {
+  display: flex;
+  gap: 12px;
+}
+
+.filter-group select {
+  flex: 1;
+  min-width: 150px;
+}
+
+.table-header {
+  padding: 16px 16px 0 16px;
+}
+
+.table-header h3 {
+  font-size: 16px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.donor-name {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-info .phone {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.btn-action {
+  padding: 6px 16px;
+  background-color: var(--light-bg);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-action:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.no-results {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .filter-group {
+    flex-direction: column;
+  }
+
+  .table {
+    font-size: 12px;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px;
+  }
+}
