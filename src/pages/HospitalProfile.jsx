@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import './HospitalProfile.css'
+import { hospitalService } from '../services/firebaseService'
 
 function HospitalProfile() {
   const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [hospitalId, setHospitalId] = useState(null)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -15,22 +19,55 @@ function HospitalProfile() {
   })
 
   useEffect(() => {
-    // Load from localStorage or API
-    const savedData = localStorage.getItem('hospitalAdminData')
-    if (savedData) {
-      const parsed = JSON.parse(savedData)
-      setProfileData({
-        name: parsed.name || 'City General Hospital',
-        email: parsed.email || 'admin@hospital.com',
-        phone: parsed.phone || '555-0100',
-        street: parsed.street || '123 Medical Center Drive',
-        city: parsed.city || 'New York',
-        state: parsed.state || 'NY',
-        zipCode: parsed.zipCode || '10001',
-        about: parsed.about || 'Leading healthcare provider with state-of-the-art facilities and expert medical professionals.'
-      })
-    }
+    loadHospitalProfile()
   }, [])
+
+  const loadHospitalProfile = async () => {
+    try {
+      setLoading(true)
+      // Get hospital data from localStorage (set during login)
+      const savedData = localStorage.getItem('hospitalAdminData')
+      
+      if (savedData) {
+        const parsed = JSON.parse(savedData)
+        const email = parsed.email || 'admin@hospital.com'
+        
+        // Fetch from Firebase using email
+        const hospital = await hospitalService.getByEmail(email)
+        
+        if (hospital) {
+          setHospitalId(hospital.id)
+          setProfileData({
+            name: hospital.name || '',
+            email: hospital.email || '',
+            phone: hospital.phone || '',
+            street: hospital.street || '',
+            city: hospital.city || '',
+            state: hospital.state || '',
+            zipCode: hospital.zipCode || '',
+            about: hospital.about || ''
+          })
+        } else {
+          // Fallback to localStorage data if not found in Firebase
+          setProfileData({
+            name: parsed.name || 'City General Hospital',
+            email: parsed.email || 'admin@hospital.com',
+            phone: parsed.phone || '555-0100',
+            street: parsed.street || '123 Medical Center Drive',
+            city: parsed.city || 'New York',
+            state: parsed.state || 'NY',
+            zipCode: parsed.zipCode || '10001',
+            about: parsed.about || 'Leading healthcare provider with state-of-the-art facilities and expert medical professionals.'
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error loading hospital profile:', error)
+      alert('Error loading profile. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleChange = (e) => {
     setProfileData({
@@ -39,16 +76,59 @@ function HospitalProfile() {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Simulate API call
-    const currentData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
-    localStorage.setItem('hospitalAdminData', JSON.stringify({
-      ...currentData,
-      ...profileData
-    }))
-    alert('Profile updated successfully!')
-    setIsEditing(false)
+
+    try {
+      setSaving(true)
+      
+      const dataToSave = {
+        name: profileData.name,
+        email: profileData.email,
+        phone: profileData.phone,
+        street: profileData.street,
+        city: profileData.city,
+        state: profileData.state,
+        zipCode: profileData.zipCode,
+        about: profileData.about
+      }
+
+      // Use upsert to create or update hospital profile
+      const result = await hospitalService.upsert(profileData.email, dataToSave)
+      
+      // Update hospitalId if it was created new
+      if (result.id && !hospitalId) {
+        setHospitalId(result.id)
+      }
+
+      // Also update localStorage for consistency
+      const currentData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+      localStorage.setItem('hospitalAdminData', JSON.stringify({
+        ...currentData,
+        ...profileData
+      }))
+
+      alert('Profile updated successfully!')
+      setIsEditing(false)
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      alert('Error updating profile: ' + (error.message || 'Please try again.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="hospital-profile">
+        <div className="page-header">
+          <h1>Hospital Profile</h1>
+        </div>
+        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -189,11 +269,12 @@ function HospitalProfile() {
               type="button"
               onClick={() => setIsEditing(false)}
               className="btn btn-secondary"
+              disabled={saving}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Save Changes
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         )}

@@ -486,6 +486,18 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if isAdmin();
     }
+
+    // Blood request feed for app users
+    match /blood_requests_feed/{feedId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Detailed blood request payloads for app UI cards
+    match /blood_request_details/{detailId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
     
     // Notifications: Read by recipient/admins, write by admins
     match /notifications/{notificationId} {

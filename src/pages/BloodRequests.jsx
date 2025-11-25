@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { requestService } from '../services/firebaseService'
 import './BloodRequests.css'
 
 function BloodRequests() {
@@ -6,22 +7,59 @@ function BloodRequests() {
   const [filteredRequests, setFilteredRequests] = useState([])
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterBloodType, setFilterBloodType] = useState('all')
+
+  const baseRequestState = {
+    patientName: '',
+    patientAge: '',
+    medicalCondition: '',
+    patientStatus: 'Urgent - Active',
+    bloodType: 'O+',
+    units: 1,
+    urgency: 'normal',
+    priorityLevel: 'normal',
+    notes: '',
+    hospitalDepartment: 'Emergency Department',
+    hospitalLocationText: '',
+    hospitalDistance: '',
+    contactPerson: '',
+    contactPhone: ''
+  }
+
+  const buildInitialRequest = () => {
+    const hospitalData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+    const locationParts = [
+      hospitalData.street,
+      hospitalData.city,
+      hospitalData.state,
+      hospitalData.zipCode
+    ].filter(Boolean)
+
+    return {
+      ...baseRequestState,
+      hospitalDepartment: hospitalData.department || baseRequestState.hospitalDepartment,
+      hospitalLocationText: locationParts.join(', '),
+      contactPerson: hospitalData.contactPerson || hospitalData.name || '',
+      contactPhone: hospitalData.phone || ''
+    }
+  }
+  
+  // View Details Modal
   const [showModal, setShowModal] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState(null)
 
+  // Create Request Modal
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newRequest, setNewRequest] = useState(() => buildInitialRequest())
+
   useEffect(() => {
-    // Simulate API call - Replace with actual API
-    const mockRequests = [
-      { id: 1, patientName: 'Robert Miller', bloodType: 'O-', units: 2, urgency: 'critical', hospital: 'City General', date: '2025-11-24', status: 'pending', notes: 'Emergency surgery' },
-      { id: 2, patientName: 'Linda Martinez', bloodType: 'AB-', units: 1, urgency: 'urgent', hospital: 'St. Mary\'s Hospital', date: '2025-11-24', status: 'pending', notes: 'Accident victim' },
-      { id: 3, patientName: 'David Anderson', bloodType: 'B-', units: 3, urgency: 'urgent', hospital: 'Memorial Hospital', date: '2025-11-23', status: 'pending', notes: 'Post-surgery care' },
-      { id: 4, patientName: 'Jessica White', bloodType: 'A+', units: 2, urgency: 'normal', hospital: 'City General', date: '2025-11-23', status: 'approved', notes: 'Scheduled surgery' },
-      { id: 5, patientName: 'Christopher Lee', bloodType: 'O+', units: 1, urgency: 'normal', hospital: 'Regional Hospital', date: '2025-11-22', status: 'approved', notes: 'Routine procedure' },
-      { id: 6, patientName: 'Amanda Harris', bloodType: 'B+', units: 2, urgency: 'urgent', hospital: 'City General', date: '2025-11-22', status: 'fulfilled', notes: 'Blood loss' },
-      { id: 7, patientName: 'Matthew Clark', bloodType: 'A-', units: 1, urgency: 'normal', hospital: 'St. Mary\'s Hospital', date: '2025-11-21', status: 'fulfilled', notes: 'Treatment completed' }
-    ]
-    setRequests(mockRequests)
-    setFilteredRequests(mockRequests)
+    // Subscribe to real-time updates
+    const unsubscribe = requestService.subscribe((data) => {
+      setRequests(data)
+      setFilteredRequests(data)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -38,17 +76,96 @@ function BloodRequests() {
     setFilteredRequests(filtered)
   }, [filterStatus, filterBloodType, requests])
 
-  const handleStatusChange = (requestId, newStatus) => {
-    setRequests(requests.map(req =>
-      req.id === requestId ? { ...req, status: newStatus } : req
-    ))
-    setShowModal(false)
-    setSelectedRequest(null)
+  const handleStatusChange = async (requestId, newStatus) => {
+    try {
+      await requestService.updateStatus(requestId, newStatus)
+      setShowModal(false)
+      setSelectedRequest(null)
+    } catch (error) {
+      console.error('Error updating status:', error)
+      alert('Failed to update status')
+    }
+  }
+
+  const handleOpenCreateModal = () => {
+    setNewRequest(buildInitialRequest())
+    setShowCreateModal(true)
+  }
+
+  const handleCreateRequest = async (e) => {
+    e.preventDefault()
+    setCreating(true)
+
+    try {
+      // Get hospital info from local storage
+      const hospitalData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+      const hospitalName = hospitalData.name || 'Unknown Hospital'
+      const hospitalLocation = {
+        street: hospitalData.street || '',
+        city: hospitalData.city || '',
+        state: hospitalData.state || '',
+        zipCode: hospitalData.zipCode || ''
+      }
+
+      const patientAge = newRequest.patientAge ? parseInt(newRequest.patientAge, 10) : null
+
+      await requestService.create({
+        ...newRequest,
+        hospitalId: hospitalData.id || '',
+        hospitalEmail: hospitalData.email || '',
+        hospitalPhone: hospitalData.phone || '',
+        hospitalLocation,
+        source: 'hospital_dashboard',
+        hospital: hospitalName,
+        patientAge,
+        units: parseInt(newRequest.units, 10),
+        date: new Date().toISOString().split('T')[0] // Current date YYYY-MM-DD
+      })
+
+      setShowCreateModal(false)
+      setNewRequest(buildInitialRequest())
+      alert('Blood request sent successfully!')
+    } catch (error) {
+      console.error('Error creating request:', error)
+      const message = (error?.code === 'permission-denied' || (error?.message || '').toLowerCase().includes('insufficient permissions'))
+        ? 'Permission denied when saving to Firestore. Update your Firestore security rules to allow hospital admins to write to donation_requests, blood_requests_feed, and blood_request_details.'
+        : 'Failed to create request. Please try again.'
+      alert(message)
+    } finally {
+      setCreating(false)
+    }
   }
 
   const openRequestDetails = (request) => {
     setSelectedRequest(request)
     setShowModal(true)
+  }
+
+  const formatLocation = (location = {}) => {
+    const parts = [location.street, location.city, location.state, location.zipCode].filter(Boolean)
+    return parts.length ? parts.join(', ') : 'Not provided'
+  }
+
+  const getPriorityLabel = (level = 'normal') => {
+    switch (level) {
+      case 'critical':
+        return 'Critical Priority'
+      case 'high':
+        return 'High Priority'
+      default:
+        return 'Normal Priority'
+    }
+  }
+
+  const getPriorityClass = (level = 'normal') => {
+    switch (level) {
+      case 'critical':
+        return 'priority-critical'
+      case 'high':
+        return 'priority-high'
+      default:
+        return 'priority-normal'
+    }
   }
 
   const getUrgencyBadgeClass = (urgency) => {
@@ -82,6 +199,9 @@ function BloodRequests() {
           <h1>Blood Requests</h1>
           <p>Manage blood donation requests from patients</p>
         </div>
+        <button onClick={handleOpenCreateModal} className="btn btn-primary">
+          + New Request
+        </button>
       </div>
 
       <div className="card filters-card">
@@ -182,42 +302,92 @@ function BloodRequests() {
               <h2>Request Details</h2>
               <button onClick={() => setShowModal(false)} className="close-btn">×</button>
             </div>
-            <div className="modal-body">
-              <div className="detail-row">
-                <label>Patient Name:</label>
-                <span>{selectedRequest.patientName}</span>
+            <div className="modal-body request-modal-body">
+              <div className="request-hero">
+                <div>
+                  <p className="hero-label">Blood Type</p>
+                  <div className="hero-blood-type">{selectedRequest.bloodType}</div>
+                  <p className="hero-units">{selectedRequest.units} units needed</p>
+                </div>
+                <div className="hero-meta">
+                  <span className={`priority-pill ${getPriorityClass(selectedRequest.priorityLevel || (selectedRequest.urgency === 'critical' ? 'critical' : selectedRequest.urgency === 'urgent' ? 'high' : 'normal'))}`}>
+                    {getPriorityLabel(selectedRequest.priorityLevel || (selectedRequest.urgency === 'critical' ? 'critical' : selectedRequest.urgency === 'urgent' ? 'high' : 'normal'))}
+                  </span>
+                  <span className={`badge ${getUrgencyBadgeClass(selectedRequest.urgency)}`}>
+                    {selectedRequest.urgency}
+                  </span>
+                  <span className={`badge ${getStatusBadgeClass(selectedRequest.status)}`}>
+                    {selectedRequest.status}
+                  </span>
+                </div>
               </div>
-              <div className="detail-row">
-                <label>Hospital:</label>
-                <span>{selectedRequest.hospital}</span>
+
+              <div className="details-section">
+                <div className="section-title">Patient Information</div>
+                <div className="details-grid">
+                  <div className="detail-card">
+                    <label>Patient Name</label>
+                    <p>{selectedRequest.patientName}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Age</label>
+                    <p>{selectedRequest.patientAge ? `${selectedRequest.patientAge} years` : 'Not provided'}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Medical Condition</label>
+                    <p>{selectedRequest.medicalCondition || 'Not provided'}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Patient Status</label>
+                    <p>{selectedRequest.patientStatus || 'Not provided'}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Requested On</label>
+                    <p>{selectedRequest.date}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Source</label>
+                    <p>{selectedRequest.source === 'hospital_dashboard' ? 'Hospital Dashboard' : (selectedRequest.source || 'Unknown')}</p>
+                  </div>
+                </div>
+                <div className="detail-card full-width">
+                  <label>Medical Notes</label>
+                  <p>{selectedRequest.notes || 'No medical notes provided.'}</p>
+                </div>
               </div>
-              <div className="detail-row">
-                <label>Blood Type:</label>
-                <span className="blood-type">{selectedRequest.bloodType}</span>
-              </div>
-              <div className="detail-row">
-                <label>Units Required:</label>
-                <span>{selectedRequest.units}</span>
-              </div>
-              <div className="detail-row">
-                <label>Urgency:</label>
-                <span className={`badge ${getUrgencyBadgeClass(selectedRequest.urgency)}`}>
-                  {selectedRequest.urgency}
-                </span>
-              </div>
-              <div className="detail-row">
-                <label>Date:</label>
-                <span>{selectedRequest.date}</span>
-              </div>
-              <div className="detail-row">
-                <label>Status:</label>
-                <span className={`badge ${getStatusBadgeClass(selectedRequest.status)}`}>
-                  {selectedRequest.status}
-                </span>
-              </div>
-              <div className="detail-row">
-                <label>Notes:</label>
-                <span>{selectedRequest.notes}</span>
+
+              <div className="details-section">
+                <div className="section-title">Hospital Information</div>
+                <div className="details-grid">
+                  <div className="detail-card">
+                    <label>Hospital</label>
+                    <p>{selectedRequest.hospital}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Department</label>
+                    <p>{selectedRequest.hospitalDepartment || 'Not provided'}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Location</label>
+                    <p>{selectedRequest.hospitalLocationText || formatLocation(selectedRequest.hospitalLocation)}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Distance</label>
+                    <p>{selectedRequest.hospitalDistance || 'Not provided'}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Contact Person</label>
+                    <p>{selectedRequest.contactPerson || 'Not provided'}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Contact Phone</label>
+                    <p>{selectedRequest.contactPhone || selectedRequest.hospitalPhone || 'Not provided'}</p>
+                  </div>
+                  <div className="detail-card">
+                    <label>Contact Email</label>
+                    <p>{selectedRequest.hospitalEmail || 'Not provided'}</p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="modal-footer">
@@ -249,6 +419,215 @@ function BloodRequests() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Request Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>New Blood Request</h2>
+              <button onClick={() => setShowCreateModal(false)} className="close-btn">×</button>
+            </div>
+            <form onSubmit={handleCreateRequest}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Patient Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    required
+                    value={newRequest.patientName}
+                    onChange={(e) => setNewRequest({...newRequest, patientName: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Patient Age</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      min="0"
+                      required
+                      value={newRequest.patientAge}
+                      onChange={(e) => setNewRequest({...newRequest, patientAge: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Medical Condition</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      required
+                      value={newRequest.medicalCondition}
+                      onChange={(e) => setNewRequest({...newRequest, medicalCondition: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Blood Type</label>
+                    <select
+                      className="form-select"
+                      value={newRequest.bloodType}
+                      onChange={(e) => setNewRequest({...newRequest, bloodType: e.target.value})}
+                    >
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Units Needed</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      min="1"
+                      required
+                      value={newRequest.units}
+                      onChange={(e) => setNewRequest({...newRequest, units: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Urgency</label>
+                    <select
+                      className="form-select"
+                      value={newRequest.urgency}
+                      onChange={(e) => setNewRequest({...newRequest, urgency: e.target.value})}
+                    >
+                      <option value="normal">Normal</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Priority Tag</label>
+                    <select
+                      className="form-select"
+                      value={newRequest.priorityLevel}
+                      onChange={(e) => setNewRequest({...newRequest, priorityLevel: e.target.value})}
+                    >
+                      <option value="normal">Normal Priority</option>
+                      <option value="high">High Priority</option>
+                      <option value="critical">Critical Priority</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Patient Status Label</label>
+                  <select
+                    className="form-select"
+                    value={newRequest.patientStatus}
+                    onChange={(e) => setNewRequest({...newRequest, patientStatus: e.target.value})}
+                  >
+                    <option value="Urgent - Active">Urgent - Active</option>
+                    <option value="Awaiting Donor Match">Awaiting Donor Match</option>
+                    <option value="Stabilized - Pending Transfusion">Stabilized - Pending Transfusion</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Medical Notes</label>
+                  <textarea
+                    className="form-textarea"
+                    rows="3"
+                    value={newRequest.notes}
+                    onChange={(e) => setNewRequest({...newRequest, notes: e.target.value})}
+                  />
+                </div>
+
+                <hr className="form-divider" />
+                <h4 className="form-section-title">Hospital Information</h4>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Department</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newRequest.hospitalDepartment}
+                      onChange={(e) => setNewRequest({...newRequest, hospitalDepartment: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Location</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newRequest.hospitalLocationText}
+                      onChange={(e) => setNewRequest({...newRequest, hospitalLocationText: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Distance from Donor</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. 2.1 km"
+                      value={newRequest.hospitalDistance}
+                      onChange={(e) => setNewRequest({...newRequest, hospitalDistance: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Contact Person</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      required
+                      value={newRequest.contactPerson}
+                      onChange={(e) => setNewRequest({...newRequest, contactPerson: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Contact Phone</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    required
+                    value={newRequest.contactPhone}
+                    onChange={(e) => setNewRequest({...newRequest, contactPhone: e.target.value})}
+                  />
+                </div>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                  This request will be saved to the hospital dashboard and pushed to the donor app feed with your hospital contact and address details.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateModal(false)} 
+                  className="btn btn-secondary"
+                  disabled={creating}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={creating}
+                >
+                  {creating ? 'Sending...' : 'Send Request'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

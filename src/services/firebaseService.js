@@ -24,7 +24,11 @@ const COLLECTIONS = {
   BLOOD_INVENTORY: 'blood_inventory',  // Blood stock levels
   DONATION_REQUESTS: 'donation_requests',  // Blood requests
   NOTIFICATIONS: 'notifications',  // Push notifications
-  DONATIONS: 'donations'         // Donation history
+  USER_NOTIFICATIONS: 'userNotifications', // Individual user notifications
+  DONATIONS: 'donations',         // Donation history
+  BLOOD_REQUESTS_FEED: 'blood_requests_feed', // New: feed for app users
+  BLOOD_REQUEST_DETAILS: 'blood_request_details', // Detailed payload for app users
+  USERS: 'users' // Firebase auth-linked user records (hospitals & donors)
 }
 
 // Mock data for when Firebase is not configured
@@ -60,15 +64,149 @@ const mockData = {
     { id: '8', bloodType: 'AB-', units: 4, minRequired: 8, lastUpdated: new Date() }
   ],
   requests: [
-    { id: '1', patientName: 'Robert Miller', bloodType: 'O-', units: 2, urgency: 'critical', hospital: 'City General', date: '2025-11-24', status: 'pending', notes: 'Emergency surgery' },
-    { id: '2', patientName: 'Linda Martinez', bloodType: 'AB-', units: 1, urgency: 'urgent', hospital: 'St. Mary\'s Hospital', date: '2025-11-24', status: 'pending', notes: 'Accident victim' },
-    { id: '3', patientName: 'David Anderson', bloodType: 'B-', units: 3, urgency: 'urgent', hospital: 'Memorial Hospital', date: '2025-11-23', status: 'pending', notes: 'Post-surgery care' }
+    { 
+      id: '1', 
+      patientName: 'Robert Miller', 
+      bloodType: 'O-', 
+      units: 2, 
+      urgency: 'critical', 
+      hospital: 'City General', 
+      date: '2025-11-24', 
+      status: 'pending', 
+      notes: 'Emergency surgery following accident.', 
+      patientAge: 34,
+      medicalCondition: 'Emergency Surgery',
+      patientStatus: 'Urgent - Active',
+      priorityLevel: 'critical',
+      hospitalDepartment: 'Emergency Department',
+      hospitalLocationText: '123 Medical Center Drive, New York, NY 10001',
+      hospitalDistance: '2.1 km',
+      contactPerson: 'Dr. Emily Carter',
+      contactPhone: '+1 555-0100'
+    },
+    { 
+      id: '2', 
+      patientName: 'Linda Martinez', 
+      bloodType: 'AB-', 
+      units: 1, 
+      urgency: 'urgent', 
+      hospital: 'St. Mary\'s Hospital', 
+      date: '2025-11-24', 
+      status: 'pending', 
+      notes: 'Requires AB- unit for scheduled surgery.', 
+      patientAge: 41,
+      medicalCondition: 'Scheduled Surgery',
+      patientStatus: 'Awaiting Donor Match',
+      priorityLevel: 'high',
+      hospitalDepartment: 'Surgery Ward',
+      hospitalLocationText: '27 Grand Ave, Boston, MA 02108',
+      hospitalDistance: '5.4 km',
+      contactPerson: 'Nurse Adam Wells',
+      contactPhone: '+1 555-0115'
+    },
+    { 
+      id: '3', 
+      patientName: 'David Anderson', 
+      bloodType: 'B-', 
+      units: 3, 
+      urgency: 'urgent', 
+      hospital: 'Memorial Hospital', 
+      date: '2025-11-23', 
+      status: 'pending', 
+      notes: 'Multiple units required post-surgery.', 
+      patientAge: 52,
+      medicalCondition: 'Post-Surgery Care',
+      patientStatus: 'Stabilized - Pending Transfusion',
+      priorityLevel: 'high',
+      hospitalDepartment: 'ICU',
+      hospitalLocationText: '89 River Rd, Chicago, IL 60601',
+      hospitalDistance: '1.2 km',
+      contactPerson: 'Dr. Helen Brooks',
+      contactPhone: '+1 555-0181'
+    }
   ],
   donations: [
     { id: '1', donorName: 'John Smith', bloodType: 'O+', date: '2025-11-23', units: 1 },
     { id: '2', donorName: 'Sarah Johnson', bloodType: 'A+', date: '2025-11-23', units: 1 },
     { id: '3', donorName: 'Michael Brown', bloodType: 'B+', date: '2025-11-22', units: 1 }
   ]
+}
+
+const parseFirestoreDate = (value) => {
+  if (!value) return null
+  if (value instanceof Timestamp) return value.toDate()
+  if (typeof value.toDate === 'function') return value.toDate()
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const formatDonorRecord = (docSnapshotOrData, source = 'profile') => {
+  const payload = typeof docSnapshotOrData.data === 'function'
+    ? docSnapshotOrData.data()
+    : docSnapshotOrData
+  const id = docSnapshotOrData.id || payload?.id || payload?.uid || `unknown-${Date.now()}`
+  const createdAtDate = parseFirestoreDate(payload?.createdAt)
+  const phone = payload?.phone || payload?.contactNumber || payload?.mobile || payload?.telephone || ''
+  const bloodType = payload?.bloodType || payload?.preferredBloodType || 'N/A'
+  const status = (payload?.status ||
+    (typeof payload?.isActive === 'boolean'
+      ? (payload.isActive ? 'active' : 'inactive')
+      : 'active')
+  ).toLowerCase()
+
+  let totalDonations = null
+  if (typeof payload?.totalDonations === 'number') {
+    totalDonations = payload.totalDonations
+  } else if (typeof payload?.donationsCount === 'number') {
+    totalDonations = payload.donationsCount
+  }
+
+  return {
+    id,
+    source,
+    name: payload?.name || payload?.fullName || payload?.hospitalName || payload?.displayName || 'Unnamed User',
+    email: payload?.email || payload?.contactEmail || '',
+    phone: phone || 'Not provided',
+    bloodType,
+    status,
+    lastDonation: payload?.lastDonation || payload?.recentDonationDate || 'N/A',
+    totalDonations,
+    role: payload?.role || (source === 'profile' ? 'donor' : 'user'),
+    hospitalName: payload?.hospitalName || payload?.hospital || '',
+    createdAt: createdAtDate,
+    createdAtTs: createdAtDate ? createdAtDate.getTime() : 0
+  }
+}
+
+// Helper to keep app feed in sync with admin dashboard requests
+const updateBloodRequestFeed = async (requestId, updates) => {
+  if (!isConfigured) return
+
+  const feedQuery = query(
+    collection(db, COLLECTIONS.BLOOD_REQUESTS_FEED),
+    where('requestId', '==', requestId)
+  )
+  const snapshot = await getDocs(feedQuery)
+
+  if (snapshot.empty) return
+
+  const payload = { ...updates, updatedAt: serverTimestamp() }
+  await Promise.all(snapshot.docs.map(docSnap => updateDoc(docSnap.ref, payload)))
+}
+
+const updateBloodRequestDetails = async (requestId, updates) => {
+  if (!isConfigured) return
+
+  const detailQuery = query(
+    collection(db, COLLECTIONS.BLOOD_REQUEST_DETAILS),
+    where('requestId', '==', requestId)
+  )
+  const snapshot = await getDocs(detailQuery)
+
+  if (snapshot.empty) return
+
+  const payload = { ...updates, updatedAt: serverTimestamp() }
+  await Promise.all(snapshot.docs.map(docSnap => updateDoc(docSnap.ref, payload)))
 }
 
 // --- Admin Services ---
@@ -100,13 +238,87 @@ export const hospitalService = {
       return mockData.hospitals.find(h => h.email.toLowerCase() === email.toLowerCase()) || null
     }
 
+    // First try to find verified hospital
     const q = query(
       collection(db, COLLECTIONS.HOSPITALS),
-      where('email', '==', email),
-      where('verified', '==', true)
+      where('email', '==', email)
     )
     const snapshot = await getDocs(q)
     return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
+  },
+
+  // Get hospital by ID
+  getById: async (id) => {
+    if (!isConfigured) {
+      return mockData.hospitals.find(h => h.id === id) || null
+    }
+
+    const docRef = doc(db, COLLECTIONS.HOSPITALS, id)
+    const docSnap = await getDoc(docRef)
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null
+  },
+
+  // Create hospital profile
+  create: async (data) => {
+    if (!isConfigured) {
+      console.warn('Mock mode: Hospital profile not actually created. Add Firebase credentials.')
+      const newHospital = { id: 'mock-hospital-' + Date.now(), ...data }
+      mockData.hospitals.push(newHospital)
+      return newHospital
+    }
+
+    const docRef = await addDoc(collection(db, COLLECTIONS.HOSPITALS), {
+      ...data,
+      verified: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
+    return { id: docRef.id, ...data }
+  },
+
+  // Update hospital profile
+  update: async (id, data) => {
+    if (!isConfigured) {
+      console.warn('Mock mode: Hospital profile not actually updated. Add Firebase credentials.')
+      // Update mock data for demo purposes
+      const hospital = mockData.hospitals.find(h => h.id === id)
+      if (hospital) {
+        Object.assign(hospital, data)
+      }
+      return { success: true }
+    }
+
+    const docRef = doc(db, COLLECTIONS.HOSPITALS, id)
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    })
+    return { success: true }
+  },
+
+  // Create or update hospital profile (upsert)
+  upsert: async (email, data) => {
+    if (!isConfigured) {
+      console.warn('Mock mode: Hospital profile not actually saved. Add Firebase credentials.')
+      let hospital = mockData.hospitals.find(h => h.email.toLowerCase() === email.toLowerCase())
+      if (hospital) {
+        Object.assign(hospital, data)
+      } else {
+        hospital = { id: 'mock-hospital-' + Date.now(), email, ...data }
+        mockData.hospitals.push(hospital)
+      }
+      return { success: true, id: hospital.id }
+    }
+
+    // Check if hospital exists
+    const existing = await hospitalService.getByEmail(email)
+    if (existing) {
+      await hospitalService.update(existing.id, data)
+      return { success: true, id: existing.id }
+    } else {
+      const created = await hospitalService.create({ email, ...data })
+      return { success: true, id: created.id }
+    }
   }
 }
 
@@ -116,32 +328,75 @@ export const donorService = {
   getAll: async () => {
     if (!isConfigured) return mockData.donors
     
-    const q = query(collection(db, COLLECTIONS.PROFILES), orderBy('createdAt', 'desc'))
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const profileQuery = query(collection(db, COLLECTIONS.PROFILES), orderBy('createdAt', 'desc'))
+    const userQuery = query(collection(db, COLLECTIONS.USERS), orderBy('createdAt', 'desc'))
+    const [profileSnap, userSnap] = await Promise.all([
+      getDocs(profileQuery),
+      getDocs(userQuery)
+    ])
+    
+    const combined = [
+      ...profileSnap.docs.map(doc => formatDonorRecord(doc, 'profile')),
+      ...userSnap.docs.map(doc => formatDonorRecord(doc, 'user'))
+    ]
+    
+    return combined.sort((a, b) => (b.createdAtTs || 0) - (a.createdAtTs || 0))
   },
 
   // Real-time listener for donors
-  subscribe: (callback) => {
+  subscribe: (callback, onError = () => {}) => {
     if (!isConfigured) {
       callback(mockData.donors)
       return () => {} // Return empty unsubscribe function
     }
     
-    const q = query(collection(db, COLLECTIONS.PROFILES), orderBy('createdAt', 'desc'))
-    return onSnapshot(q, (snapshot) => {
-      const donors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      callback(donors)
+    let profileRecords = []
+    let userRecords = []
+
+    const emitCombined = () => {
+      const merged = [...profileRecords, ...userRecords]
+        .sort((a, b) => (b.createdAtTs || 0) - (a.createdAtTs || 0))
+      callback(merged)
+    }
+
+    const profileQuery = query(collection(db, COLLECTIONS.PROFILES), orderBy('createdAt', 'desc'))
+    const userQuery = query(collection(db, COLLECTIONS.USERS), orderBy('createdAt', 'desc'))
+
+    const unsubProfiles = onSnapshot(profileQuery, (snapshot) => {
+      profileRecords = snapshot.docs.map(doc => formatDonorRecord(doc, 'profile'))
+      emitCombined()
+    }, (error) => {
+      console.error('Error subscribing to profiles collection:', error)
+      onError(error)
     })
+
+    const unsubUsers = onSnapshot(userQuery, (snapshot) => {
+      userRecords = snapshot.docs.map(doc => formatDonorRecord(doc, 'user'))
+      emitCombined()
+    }, (error) => {
+      console.error('Error subscribing to users collection:', error)
+      onError(error)
+    })
+
+    return () => {
+      if (typeof unsubProfiles === 'function') unsubProfiles()
+      if (typeof unsubUsers === 'function') unsubUsers()
+    }
   },
 
   // Get single donor
   getById: async (id) => {
     if (!isConfigured) return mockData.donors.find(d => d.id === id) || null
     
-    const docRef = doc(db, COLLECTIONS.PROFILES, id)
-    const docSnap = await getDoc(docRef)
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null
+    const profileRef = doc(db, COLLECTIONS.PROFILES, id)
+    const profileSnap = await getDoc(profileRef)
+    if (profileSnap.exists()) {
+      return formatDonorRecord(profileSnap, 'profile')
+    }
+
+    const userRef = doc(db, COLLECTIONS.USERS, id)
+    const userSnap = await getDoc(userRef)
+    return userSnap.exists() ? formatDonorRecord(userSnap, 'user') : null
   },
 
   // Create donor
@@ -257,19 +512,67 @@ export const requestService = {
     })
   },
 
-  // Create request
+  // Create request and push to app feed
   create: async (requestData) => {
     if (!isConfigured) {
       console.warn('Mock mode: Request not actually created. Add Firebase credentials.')
-      return { id: 'mock-' + Date.now() }
+      const mockId = 'mock-' + Date.now()
+      mockData.requests.unshift({
+        id: mockId,
+        ...requestData,
+        status: 'pending',
+        date: new Date().toISOString().split('T')[0]
+      })
+      return { id: mockId }
     }
-    
-    return await addDoc(collection(db, COLLECTIONS.DONATION_REQUESTS), {
+
+    const payload = {
       ...requestData,
       status: 'pending',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
+    }
+
+    // Save to main requests collection
+    const docRef = await addDoc(collection(db, COLLECTIONS.DONATION_REQUESTS), payload)
+
+    // Also push to blood_requests_feed for app users
+    await addDoc(collection(db, COLLECTIONS.BLOOD_REQUESTS_FEED), {
+      ...payload,
+      requestId: docRef.id
     })
+
+    // Detailed record for mobile blood request detail screen (best-effort)
+    try {
+      await addDoc(collection(db, COLLECTIONS.BLOOD_REQUEST_DETAILS), {
+        requestId: docRef.id,
+        patientName: payload.patientName,
+        patientAge: payload.patientAge || null,
+        medicalCondition: requestData.medicalCondition || '',
+        patientStatus: requestData.patientStatus || '',
+        medicalNotes: requestData.notes || '',
+        bloodType: payload.bloodType,
+        unitsNeeded: payload.units,
+        priorityLevel: requestData.priorityLevel || payload.urgency || 'normal',
+        urgency: payload.urgency,
+        hospital: payload.hospital,
+        hospitalDepartment: requestData.hospitalDepartment || '',
+        hospitalLocationText: requestData.hospitalLocationText || '',
+        hospitalDistance: requestData.hospitalDistance || '',
+        hospitalLocation: payload.hospitalLocation || null,
+        contactPerson: requestData.contactPerson || '',
+        contactPhone: requestData.contactPhone || payload.hospitalPhone || '',
+        contactEmail: payload.hospitalEmail || '',
+        status: payload.status,
+        date: payload.date,
+        source: payload.source,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Failed to create blood_request_details entry', error)
+    }
+    return docRef
   },
 
   // Update request status
@@ -290,7 +593,15 @@ export const requestService = {
     if (status === 'approved') updates.approvedAt = serverTimestamp()
     if (status === 'fulfilled') updates.fulfilledAt = serverTimestamp()
     
-    return await updateDoc(docRef, updates)
+    await updateDoc(docRef, updates)
+    await updateBloodRequestFeed(id, updates)
+    try {
+      await updateBloodRequestDetails(id, updates)
+    } catch (error) {
+      console.error('Failed to sync blood_request_details update', error)
+    }
+
+    return { success: true }
   },
 
   // Get urgent requests
@@ -318,6 +629,23 @@ export const notificationService = {
     
     return await addDoc(collection(db, COLLECTIONS.NOTIFICATIONS), {
       ...notificationData,
+      sentAt: serverTimestamp(),
+      read: false
+    })
+  },
+
+  // Send to specific user
+  sendToUser: async (userId, title, body, type = 'general') => {
+    if (!isConfigured) {
+      console.warn('Mock mode: User notification not actually sent. Add Firebase credentials.')
+      return { id: 'mock-' + Date.now(), success: true }
+    }
+
+    return await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
+      userId,
+      title,
+      body,
+      type,
       sentAt: serverTimestamp(),
       read: false
     })
