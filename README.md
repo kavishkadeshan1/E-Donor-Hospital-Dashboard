@@ -91,6 +91,20 @@ npm run dev
 http://localhost:3000
 ```
 
+### Firebase Configuration (for live data)
+1. Create a Firebase project and enable Firestore (and Cloud Messaging if you want push notifications).
+2. Copy the config values from **Project Settings → General → Your Apps**.
+3. Create a `.env` file in the project root (or update existing) using `.env.example` as a template:
+```
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+```
+4. Restart `npm run dev` so Vite picks up the new environment variables.
+
 ### Demo Credentials
 
 - **Email:** admin@hospital.com

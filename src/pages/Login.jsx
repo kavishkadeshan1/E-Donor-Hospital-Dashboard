@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import './Login.css'
+
+import { hospitalService } from '../services/firebaseService'
+import { auth, isConfigured } from '../lib/firebase'
 
 function Login({ onLogin }) {
   const navigate = useNavigate()
@@ -26,32 +30,68 @@ function Login({ onLogin }) {
 
     // Validation
     if (!formData.email || !formData.password) {
-      setError('Please fill in all fields')
+      setError('Please enter your email and password')
       setLoading(false)
       return
     }
 
-    // Simulate API call - Replace with actual API endpoint
-    setTimeout(() => {
-      // Demo credentials
-      if (formData.email === 'admin@hospital.com' && formData.password === 'admin123') {
-        const adminData = {
-          id: 1,
-          name: 'City General Hospital',
-          email: formData.email,
-          role: 'admin'
+    try {
+      let hospital = null
+
+      if (isConfigured && auth) {
+        // Firebase Auth email/password sign-in
+        const { user } = await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password)
+        hospital = await hospitalService.getByEmail(formData.email.trim())
+
+        if (!hospital) {
+          await signOut(auth)
+          setError('Hospital not found or not verified.')
+          setLoading(false)
+          return
         }
-        
-        localStorage.setItem('hospitalAdminToken', 'demo-token-123')
-        localStorage.setItem('hospitalAdminData', JSON.stringify(adminData))
-        
-        onLogin()
-        navigate('/dashboard')
+
+        localStorage.setItem('hospitalAdminToken', user.uid)
+        localStorage.setItem('hospitalAdminData', JSON.stringify({
+          id: hospital.id,
+          name: hospital.name,
+          email: hospital.email,
+          phone: hospital.phone || '',
+          street: hospital.street || '',
+          city: hospital.city || '',
+          state: hospital.state || '',
+          zipCode: hospital.zipCode || '',
+          about: hospital.about || ''
+        }))
       } else {
-        setError('Invalid email or password')
+        // Demo fallback when Firebase is not configured
+        hospital = await hospitalService.getByEmail(formData.email.trim())
+        if (!hospital) {
+          setError('Demo login failed. Use a known hospital email.')
+          setLoading(false)
+          return
+        }
+        localStorage.setItem('hospitalAdminToken', `demo-${hospital.id}`)
+        localStorage.setItem('hospitalAdminData', JSON.stringify({
+          id: hospital.id,
+          name: hospital.name,
+          email: hospital.email,
+          phone: hospital.phone || '',
+          street: hospital.street || '',
+          city: hospital.city || '',
+          state: hospital.state || '',
+          zipCode: hospital.zipCode || '',
+          about: hospital.about || ''
+        }))
       }
+
+      onLogin()
+      navigate('/dashboard')
+    } catch (err) {
+      console.error('Login error', err)
+      setError('Unable to sign in. Please try again.')
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -66,6 +106,11 @@ function Login({ onLogin }) {
           </div>
           <h1>E-Donor Hospital Admin</h1>
           <p>Sign in to manage blood donation system</p>
+          {!isConfigured && (
+            <p className="error-message" style={{ marginTop: '8px' }}>
+              Firebase is not configured. Add your keys to .env to enable login.
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -82,7 +127,7 @@ function Login({ onLogin }) {
               id="email"
               name="email"
               className="form-input"
-              placeholder="admin@hospital.com"
+              placeholder="hospital email in Firestore"
               value={formData.email}
               onChange={handleChange}
               disabled={loading}
@@ -107,11 +152,12 @@ function Login({ onLogin }) {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <div className="demo-credentials">
-            <p><strong>Demo Credentials:</strong></p>
-            <p>Email: admin@hospital.com</p>
-            <p>Password: admin123</p>
-          </div>
+          {!isConfigured && (
+            <div className="demo-credentials">
+              <p><strong>Demo Mode:</strong></p>
+              <p>Any email/password works while Firebase is not configured.</p>
+            </div>
+          )}
         </form>
       </div>
     </div>

@@ -29,6 +29,20 @@ const COLLECTIONS = {
 
 // Mock data for when Firebase is not configured
 const mockData = {
+  hospitals: [
+    {
+      id: 'mock-hospital-1',
+      name: 'City General Hospital',
+      email: 'admin@hospital.com',
+      phone: '555-0100',
+      city: 'New York',
+      state: 'NY',
+      street: '123 Medical Center Drive',
+      zipCode: '10001',
+      verified: true,
+      about: 'Mock hospital profile'
+    }
+  ],
   donors: [
     { id: '1', name: 'John Smith', email: 'john@example.com', phone: '+1234567890', bloodType: 'O+', status: 'active', totalDonations: 5, lastDonation: '2025-11-15' },
     { id: '2', name: 'Sarah Johnson', email: 'sarah@example.com', phone: '+1234567891', bloodType: 'A+', status: 'active', totalDonations: 3, lastDonation: '2025-11-20' },
@@ -75,6 +89,24 @@ export const adminService = {
     const docRef = doc(db, COLLECTIONS.ADMINS, id)
     const docSnap = await getDoc(docRef)
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null
+  }
+}
+
+// --- Hospital Services ---
+export const hospitalService = {
+  // Fetch hospital profile by email (verified only)
+  getByEmail: async (email) => {
+    if (!isConfigured) {
+      return mockData.hospitals.find(h => h.email.toLowerCase() === email.toLowerCase()) || null
+    }
+
+    const q = query(
+      collection(db, COLLECTIONS.HOSPITALS),
+      where('email', '==', email),
+      where('verified', '==', true)
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
   }
 }
 

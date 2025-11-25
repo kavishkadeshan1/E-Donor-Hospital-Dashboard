@@ -7,14 +7,11 @@ function HospitalProfile() {
     name: '',
     email: '',
     phone: '',
-    address: '',
+    street: '',
     city: '',
     state: '',
     zipCode: '',
-    licenseNumber: '',
-    establishedYear: '',
-    website: '',
-    description: ''
+    about: ''
   })
 
   useEffect(() => {
@@ -25,15 +22,12 @@ function HospitalProfile() {
       setProfileData({
         name: parsed.name || 'City General Hospital',
         email: parsed.email || 'admin@hospital.com',
-        phone: '555-0100',
-        address: '123 Medical Center Drive',
-        city: 'New York',
-        state: 'NY',
-        zipCode: '10001',
-        licenseNumber: 'LIC-2023-001',
-        establishedYear: '1985',
-        website: 'www.citygeneralhospital.com',
-        description: 'Leading healthcare provider with state-of-the-art facilities and expert medical professionals.'
+        phone: parsed.phone || '555-0100',
+        street: parsed.street || '123 Medical Center Drive',
+        city: parsed.city || 'New York',
+        state: parsed.state || 'NY',
+        zipCode: parsed.zipCode || '10001',
+        about: parsed.about || 'Leading healthcare provider with state-of-the-art facilities and expert medical professionals.'
       })
     }
   }, [])
@@ -51,8 +45,7 @@ function HospitalProfile() {
     const currentData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
     localStorage.setItem('hospitalAdminData', JSON.stringify({
       ...currentData,
-      name: profileData.name,
-      email: profileData.email
+      ...profileData
     }))
     alert('Profile updated successfully!')
     setIsEditing(false)
@@ -76,13 +69,13 @@ function HospitalProfile() {
         <div className="card">
           <h3>Basic Information</h3>
           <div className="form-grid">
-            <div className="form-group full-width">
-              <label htmlFor="name" className="form-label">Hospital Name</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                className="form-input"
+          <div className="form-group full-width">
+            <label htmlFor="name" className="form-label">Hospital Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              className="form-input"
                 value={profileData.name}
                 onChange={handleChange}
                 disabled={!isEditing}
@@ -114,45 +107,6 @@ function HospitalProfile() {
                 disabled={!isEditing}
               />
             </div>
-
-            <div className="form-group">
-              <label htmlFor="website" className="form-label">Website</label>
-              <input
-                type="text"
-                id="website"
-                name="website"
-                className="form-input"
-                value={profileData.website}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="licenseNumber" className="form-label">License Number</label>
-              <input
-                type="text"
-                id="licenseNumber"
-                name="licenseNumber"
-                className="form-input"
-                value={profileData.licenseNumber}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="establishedYear" className="form-label">Established Year</label>
-              <input
-                type="text"
-                id="establishedYear"
-                name="establishedYear"
-                className="form-input"
-                value={profileData.establishedYear}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
           </div>
         </div>
 
@@ -160,13 +114,13 @@ function HospitalProfile() {
           <h3>Address Information</h3>
           <div className="form-grid">
             <div className="form-group full-width">
-              <label htmlFor="address" className="form-label">Street Address</label>
+              <label htmlFor="street" className="form-label">Street Address</label>
               <input
                 type="text"
-                id="address"
-                name="address"
+                id="street"
+                name="street"
                 className="form-input"
-                value={profileData.address}
+                value={profileData.street}
                 onChange={handleChange}
                 disabled={!isEditing}
               />
@@ -216,12 +170,12 @@ function HospitalProfile() {
         <div className="card">
           <h3>Description</h3>
           <div className="form-group">
-            <label htmlFor="description" className="form-label">About Hospital</label>
+            <label htmlFor="about" className="form-label">About Hospital</label>
             <textarea
-              id="description"
-              name="description"
+              id="about"
+              name="about"
               className="form-textarea"
-              value={profileData.description}
+              value={profileData.about}
               onChange={handleChange}
               disabled={!isEditing}
               rows="4"
