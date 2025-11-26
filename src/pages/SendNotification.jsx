@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { notificationService } from '../services/firebaseService'
 import './SendNotification.css'
 
@@ -8,10 +8,32 @@ function SendNotification() {
     body: '',
     type: 'general',
     targetAudience: 'all',
-    priority: 'normal'
+    priority: 'normal',
+    selectedUserId: ''
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+  const [sentCount, setSentCount] = useState(0)
+  const [users, setUsers] = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+
+  // Load users for specific user targeting
+  useEffect(() => {
+    const loadUsers = async () => {
+      setLoadingUsers(true)
+      try {
+        const allUsers = await notificationService.getAllUsers()
+        console.log('Loaded users for notification targeting:', allUsers)
+        setUsers(allUsers)
+      } catch (err) {
+        console.error('Error loading users:', err)
+      } finally {
+        setLoadingUsers(false)
+      }
+    }
+    loadUsers()
+  }, [])
 
   const notificationTemplates = [
     { 
@@ -46,6 +68,7 @@ function SendNotification() {
       [e.target.name]: e.target.value
     })
     setSuccess(false)
+    setError('')
   }
 
   const applyTemplate = (template) => {
@@ -55,33 +78,76 @@ function SendNotification() {
       body: template.body,
       type: template.type
     })
+    setError('')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
     
     if (!formData.title || !formData.body) {
-      alert('Please fill in all required fields')
+      setError('Please fill in all required fields')
+      return
+    }
+
+    // Validate specific user selection
+    if (formData.targetAudience === 'specific' && !formData.selectedUserId) {
+      setError('Please select a user to send the notification to')
       return
     }
 
     setLoading(true)
+    setSentCount(0)
 
     try {
-      if (formData.targetAudience === 'all') {
-        await notificationService.broadcast(
+      const metadata = {
+        priority: formData.priority,
+        sentFrom: 'hospital-admin-portal'
+      }
+
+      let result
+
+      // Check if targeting by blood type
+      const bloodTypes = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']
+      
+      if (formData.targetAudience === 'specific') {
+        // Send to specific user
+        result = await notificationService.sendToUser(
+          formData.selectedUserId,
           formData.title,
           formData.body,
-          formData.type
+          formData.type,
+          metadata
         )
+        setSentCount(1)
+      } else if (bloodTypes.includes(formData.targetAudience)) {
+        // Send to users with specific blood type
+        result = await notificationService.broadcastByBloodType(
+          [formData.targetAudience],
+          formData.title,
+          formData.body,
+          formData.type,
+          metadata
+        )
+        setSentCount(result.count || 0)
+      } else if (formData.targetAudience === 'all') {
+        // Broadcast to all users
+        result = await notificationService.broadcast(
+          formData.title,
+          formData.body,
+          formData.type,
+          metadata
+        )
+        setSentCount(result.count || 0)
       } else {
-        await notificationService.send({
-          title: formData.title,
-          body: formData.body,
-          type: formData.type,
-          targetAudience: formData.targetAudience,
-          priority: formData.priority
-        })
+        // Other targeting (donors, recipients)
+        result = await notificationService.broadcast(
+          formData.title,
+          formData.body,
+          formData.type,
+          { ...metadata, targetAudience: formData.targetAudience }
+        )
+        setSentCount(result.count || 0)
       }
 
       setSuccess(true)
@@ -90,13 +156,14 @@ function SendNotification() {
         body: '',
         type: 'general',
         targetAudience: 'all',
-        priority: 'normal'
+        priority: 'normal',
+        selectedUserId: ''
       })
 
       setTimeout(() => setSuccess(false), 5000)
-    } catch (error) {
-      console.error('Error sending notification:', error)
-      alert('Failed to send notification. Please try again.')
+    } catch (err) {
+      console.error('Error sending notification:', err)
+      setError(`Failed to send notification: ${err.message || 'Unknown error. Check console for details.'}`)
     } finally {
       setLoading(false)
     }
@@ -175,7 +242,22 @@ function SendNotification() {
               <span className="success-icon">✅</span>
               <div>
                 <strong>Notification Sent Successfully!</strong>
-                <p>Your message has been delivered to mobile app users.</p>
+                <p>
+                  {sentCount > 0 
+                    ? `Your message has been delivered to ${sentCount} mobile app user${sentCount !== 1 ? 's' : ''}.`
+                    : 'Notification created! Check Firebase userNotifications collection.'
+                  }
+                </p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="error-message">
+              <span className="error-icon">⚠️</span>
+              <div>
+                <strong>Error</strong>
+                <p>{error}</p>
               </div>
             </div>
           )}
@@ -221,7 +303,7 @@ function SendNotification() {
               name="body"
               className="form-textarea"
               rows="5"
-              placeholder="Enter notification message"
+              placeholder="Enter notification message (e.g., Critical shortage of O+. Please donate if you can.)"
               value={formData.body}
               onChange={handleChange}
               maxLength={200}
@@ -241,6 +323,7 @@ function SendNotification() {
                 onChange={handleChange}
               >
                 <option value="all">👥 All Users</option>
+                <option value="specific">👤 Specific User</option>
                 <option value="donors">🩸 Active Donors Only</option>
                 <option value="recipients">🏥 Recipients Only</option>
                 <optgroup label="By Blood Type">
@@ -271,6 +354,48 @@ function SendNotification() {
               </select>
             </div>
           </div>
+
+          {formData.targetAudience === 'specific' && (
+            <div className="form-group">
+              <label htmlFor="selectedUserId">Select User or Enter User ID *</label>
+              {users.length > 0 ? (
+                <select
+                  id="selectedUserId"
+                  name="selectedUserId"
+                  className="form-select"
+                  value={formData.selectedUserId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Select a user --</option>
+                  {loadingUsers ? (
+                    <option disabled>Loading users...</option>
+                  ) : (
+                    users.map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.name || user.email || user.id} {user.bloodType ? `(${user.bloodType})` : ''}
+                      </option>
+                    ))
+                  )}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  id="selectedUserId"
+                  name="selectedUserId"
+                  className="form-input"
+                  placeholder="Enter user ID (e.g., Ht4CpYq4m3erygskPseZGkDw5Ws1)"
+                  value={formData.selectedUserId}
+                  onChange={handleChange}
+                  required
+                />
+              )}
+              <div className="form-hint">
+                {users.length === 0 && 'No users found in database. Enter the user ID manually from Firebase.'}
+                {users.length > 0 && `User ID: ${formData.selectedUserId || 'Select a user above'}`}
+              </div>
+            </div>
+          )}
 
           <button 
             type="submit" 

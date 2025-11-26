@@ -627,46 +627,254 @@ export const notificationService = {
       return { id: 'mock-' + Date.now(), success: true }
     }
     
-    return await addDoc(collection(db, COLLECTIONS.NOTIFICATIONS), {
-      ...notificationData,
-      sentAt: serverTimestamp(),
-      read: false
-    })
+    try {
+      return await addDoc(collection(db, COLLECTIONS.NOTIFICATIONS), {
+        ...notificationData,
+        sentAt: serverTimestamp(),
+        read: false
+      })
+    } catch (error) {
+      console.error('Error sending notification:', error)
+      throw error
+    }
   },
 
-  // Send to specific user
-  sendToUser: async (userId, title, body, type = 'general') => {
+  // Send to specific user with proper E-Donor app structure
+  sendToUser: async (userId, title, body, type = 'general', metadata = {}) => {
     if (!isConfigured) {
       console.warn('Mock mode: User notification not actually sent. Add Firebase credentials.')
       return { id: 'mock-' + Date.now(), success: true }
     }
 
-    return await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
-      userId,
-      title,
-      body,
-      type,
-      sentAt: serverTimestamp(),
-      read: false
-    })
+    try {
+      const adminData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+      const senderEmail = adminData.email || 'admin@hospital.com'
+
+      // Create the notification document
+      const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
+        body,
+        title,
+        type,
+        userId,
+        read: false,
+        receivedAt: serverTimestamp(),
+        sentBy: senderEmail,
+        metadata: {
+          ...metadata,
+          notificationId: '' // Will be updated
+        }
+      })
+
+      // Update the document to include the notificationId in metadata
+      await updateDoc(notificationRef, {
+        'metadata.notificationId': notificationRef.id
+      })
+
+      return { id: notificationRef.id, success: true }
+    } catch (error) {
+      console.error('Error sending notification to user:', error)
+      throw error
+    }
   },
 
-  // Broadcast to all users
-  broadcast: async (title, body, type = 'general') => {
+  // Send to multiple users (for targeted notifications)
+  sendToUsers: async (userIds, title, body, type = 'general', metadata = {}) => {
+    if (!isConfigured) {
+      console.warn('Mock mode: Notifications not actually sent. Add Firebase credentials.')
+      return { success: true, count: userIds.length }
+    }
+
+    try {
+      const adminData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+      const senderEmail = adminData.email || 'admin@hospital.com'
+
+      let successCount = 0
+      for (const userId of userIds) {
+        try {
+          const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
+            body,
+            title,
+            type,
+            userId,
+            read: false,
+            receivedAt: serverTimestamp(),
+            sentBy: senderEmail,
+            metadata: {
+              ...metadata,
+              notificationId: ''
+            }
+          })
+
+          await updateDoc(notificationRef, {
+            'metadata.notificationId': notificationRef.id
+          })
+          successCount++
+        } catch (err) {
+          console.error(`Failed to send notification to user ${userId}:`, err)
+        }
+      }
+
+      return { success: true, count: successCount }
+    } catch (error) {
+      console.error('Error sending notifications to users:', error)
+      throw error
+    }
+  },
+
+  // Broadcast to all users - fetches all user IDs and sends individual notifications
+  broadcast: async (title, body, type = 'general', metadata = {}) => {
     if (!isConfigured) {
       console.warn('Mock mode: Broadcast not actually sent. Add Firebase credentials.')
       return { success: true, count: mockData.donors.length }
     }
-    
-    return await addDoc(collection(db, COLLECTIONS.NOTIFICATIONS), {
-      title,
-      body,
-      type,
-      targetAudience: 'all',
-      broadcast: true,
-      sentAt: serverTimestamp(),
-      read: false
-    })
+
+    try {
+      const adminData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+      const senderEmail = adminData.email || 'admin@hospital.com'
+
+      // Get all user profiles - try profiles first, then users collection
+      let userIds = []
+      
+      // Try profiles collection first
+      try {
+        const profilesSnap = await getDocs(collection(db, COLLECTIONS.PROFILES))
+        userIds = profilesSnap.docs.map(doc => doc.id)
+        console.log(`Found ${userIds.length} users in profiles collection`)
+      } catch (err) {
+        console.error('Error fetching profiles:', err)
+      }
+
+      // If no profiles found, try users collection
+      if (userIds.length === 0) {
+        try {
+          const usersSnap = await getDocs(collection(db, COLLECTIONS.USERS))
+          userIds = usersSnap.docs.map(doc => doc.id)
+          console.log(`Found ${userIds.length} users in users collection`)
+        } catch (err) {
+          console.error('Error fetching users:', err)
+        }
+      }
+
+      // If still no users, get user IDs from existing userNotifications
+      if (userIds.length === 0) {
+        try {
+          const notificationsSnap = await getDocs(collection(db, COLLECTIONS.USER_NOTIFICATIONS))
+          const uniqueUserIds = new Set()
+          notificationsSnap.docs.forEach(doc => {
+            const data = doc.data()
+            if (data.userId) {
+              uniqueUserIds.add(data.userId)
+            }
+          })
+          userIds = Array.from(uniqueUserIds)
+          console.log(`Found ${userIds.length} unique users from userNotifications`)
+        } catch (err) {
+          console.error('Error fetching from userNotifications:', err)
+        }
+      }
+
+      if (userIds.length === 0) {
+        console.warn('No users found to broadcast to')
+        return { success: true, count: 0 }
+      }
+
+      // Send to each user
+      let successCount = 0
+      for (const userId of userIds) {
+        try {
+          const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
+            body,
+            title,
+            type,
+            userId,
+            read: false,
+            receivedAt: serverTimestamp(),
+            sentBy: senderEmail,
+            metadata: {
+              ...metadata,
+              notificationId: ''
+            }
+          })
+
+          await updateDoc(notificationRef, {
+            'metadata.notificationId': notificationRef.id
+          })
+          successCount++
+        } catch (err) {
+          console.error(`Failed to send notification to user ${userId}:`, err)
+        }
+      }
+
+      return { success: true, count: successCount }
+    } catch (error) {
+      console.error('Error broadcasting notifications:', error)
+      throw error
+    }
+  },
+
+  // Broadcast by blood type - sends to users with specific blood types
+  broadcastByBloodType: async (bloodTypes, title, body, type = 'general', metadata = {}) => {
+    if (!isConfigured) {
+      console.warn('Mock mode: Broadcast not actually sent. Add Firebase credentials.')
+      return { success: true, count: 0 }
+    }
+
+    try {
+      const adminData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+      const senderEmail = adminData.email || 'admin@hospital.com'
+
+      // Get users with matching blood types
+      let profilesSnap
+      try {
+        profilesSnap = await getDocs(collection(db, COLLECTIONS.PROFILES))
+      } catch (err) {
+        console.error('Error fetching profiles:', err)
+        return { success: true, count: 0, error: 'Could not fetch user profiles' }
+      }
+
+      const matchingUsers = profilesSnap.docs.filter(doc => {
+        const data = doc.data()
+        return bloodTypes.includes(data.bloodType)
+      })
+
+      if (matchingUsers.length === 0) {
+        console.warn('No users found with matching blood types')
+        return { success: true, count: 0 }
+      }
+
+      // Send to each matching user
+      let successCount = 0
+      for (const userDoc of matchingUsers) {
+        try {
+          const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
+            body,
+            title,
+            type,
+            userId: userDoc.id,
+            read: false,
+            receivedAt: serverTimestamp(),
+            sentBy: senderEmail,
+            metadata: {
+              ...metadata,
+              targetBloodType: userDoc.data().bloodType,
+              notificationId: ''
+            }
+          })
+
+          await updateDoc(notificationRef, {
+            'metadata.notificationId': notificationRef.id
+          })
+          successCount++
+        } catch (err) {
+          console.error(`Failed to send notification to user ${userDoc.id}:`, err)
+        }
+      }
+
+      return { success: true, count: successCount }
+    } catch (error) {
+      console.error('Error broadcasting by blood type:', error)
+      throw error
+    }
   },
 
   // Get recent notifications
@@ -680,6 +888,71 @@ export const notificationService = {
     )
     const snapshot = await getDocs(q)
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  },
+
+  // Get all users for targeting - tries multiple collections
+  getAllUsers: async () => {
+    if (!isConfigured) {
+      return mockData.donors.map(d => ({
+        id: d.id,
+        name: d.name,
+        email: d.email,
+        bloodType: d.bloodType
+      }))
+    }
+
+    let users = []
+
+    // Try profiles collection first
+    try {
+      const profilesSnap = await getDocs(collection(db, COLLECTIONS.PROFILES))
+      users = profilesSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      console.log(`getAllUsers: Found ${users.length} users in profiles`)
+    } catch (err) {
+      console.error('Error fetching profiles:', err)
+    }
+
+    // If no profiles, try users collection
+    if (users.length === 0) {
+      try {
+        const usersSnap = await getDocs(collection(db, COLLECTIONS.USERS))
+        users = usersSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        console.log(`getAllUsers: Found ${users.length} users in users collection`)
+      } catch (err) {
+        console.error('Error fetching users:', err)
+      }
+    }
+
+    // If still empty, extract unique users from userNotifications
+    if (users.length === 0) {
+      try {
+        const notificationsSnap = await getDocs(collection(db, COLLECTIONS.USER_NOTIFICATIONS))
+        const userMap = new Map()
+        notificationsSnap.docs.forEach(doc => {
+          const data = doc.data()
+          if (data.userId && !userMap.has(data.userId)) {
+            userMap.set(data.userId, {
+              id: data.userId,
+              name: data.userId, // Use ID as name if no profile
+              email: '',
+              bloodType: ''
+            })
+          }
+        })
+        users = Array.from(userMap.values())
+        console.log(`getAllUsers: Found ${users.length} unique users from notifications`)
+      } catch (err) {
+        console.error('Error extracting users from notifications:', err)
+      }
+    }
+
+    return users
   }
 }
 

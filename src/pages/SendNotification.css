@@ -150,6 +150,39 @@
   opacity: 0.9;
 }
 
+.error-message {
+  padding: 20px;
+  background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+  border: 2px solid #EF4444;
+  border-radius: 12px;
+  color: #991B1B;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  animation: slideDown 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.error-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.error-message strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.error-message p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: normal;
+  opacity: 0.9;
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -232,7 +265,48 @@
   border-radius: 12px;
 }
 
+.form-hint {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+  font-family: monospace;
+  background: var(--light-bg);
+  padding: 8px 12px;
+  border-radius: 6px;
+  word-break: break-all;
+}
 
+/* Dark Mode Styles */
+[data-theme="dark"] .stat-card {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .template-card {
+  background: var(--dark-bg);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .template-card:hover {
+  background: var(--card-bg);
+}
+
+[data-theme="dark"] .success-message {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10B981;
+  color: #6EE7B7;
+}
+
+[data-theme="dark"] .error-message {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #EF4444;
+  color: #FCA5A5;
+}
+
+[data-theme="dark"] .form-hint {
+  background: var(--dark-bg);
+  color: var(--text-light);
+}
 
 /* Responsive */
 @media (max-width: 768px) {
