@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import './HospitalProfile.css'
 import { hospitalService } from '../services/firebaseService'
+import { Icons } from '../components/Icons'
+import './HospitalProfile.css'
 
 function HospitalProfile() {
   const [isEditing, setIsEditing] = useState(false)
@@ -101,18 +102,18 @@ function HospitalProfile() {
         setHospitalId(result.id)
       }
 
-      // Also update localStorage for consistency
-      const currentData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
+      // Update localStorage
+      const currentAdminData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
       localStorage.setItem('hospitalAdminData', JSON.stringify({
-        ...currentData,
-        ...profileData
+        ...currentAdminData,
+        ...dataToSave
       }))
 
-      alert('Profile updated successfully!')
       setIsEditing(false)
+      alert('Profile updated successfully!')
     } catch (error) {
-      console.error('Error updating profile:', error)
-      alert('Error updating profile: ' + (error.message || 'Please try again.'))
+      console.error('Error saving profile:', error)
+      alert('Error saving profile. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -120,164 +121,179 @@ function HospitalProfile() {
 
   if (loading) {
     return (
-      <div className="hospital-profile">
-        <div className="page-header">
-          <h1>Hospital Profile</h1>
-        </div>
-        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
-          <p>Loading profile...</p>
-        </div>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading profile...</p>
       </div>
     )
   }
 
   return (
     <div className="hospital-profile">
-      <div className="page-header">
-        <div>
-          <h1>Hospital Profile</h1>
-          <p>Manage your hospital information and details</p>
+      {/* Header Card */}
+      <div className="profile-header-card">
+        <div className="header-content">
+          <div className="hospital-avatar">
+            {Icons.hospital}
+          </div>
+          <div className="hospital-info">
+            <h1>{profileData.name || 'Hospital Name'}</h1>
+            <p>{Icons.check} Verified Healthcare Provider</p>
+          </div>
         </div>
-        {!isEditing && (
-          <button onClick={() => setIsEditing(true)} className="btn btn-primary">
-            Edit Profile
-          </button>
-        )}
+        <div className="header-actions">
+          {!isEditing ? (
+            <button className="btn-primary" onClick={() => setIsEditing(true)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              Edit Profile
+            </button>
+          ) : (
+            <div className="form-actions">
+              <button className="btn-secondary" onClick={() => setIsEditing(false)} disabled={saving}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="profile-form">
-        <div className="card">
-          <h3>Basic Information</h3>
-          <div className="form-grid">
-          <div className="form-group full-width">
-            <label htmlFor="name" className="form-label">Hospital Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              className="form-input"
-                value={profileData.name}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
+        <div className="form-main-content">
+          {/* Organization Details */}
+          <div className="form-section">
+            <div className="section-header">
+              <div className="section-icon">
+                {Icons.hospital}
+              </div>
+              <h3>Organization Details</h3>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="email" className="form-label">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className="form-input"
-                value={profileData.email}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
+            <div className="form-grid">
+              <div className="form-group full-width">
+                <label>Hospital Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={profileData.name}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  required
+                />
+              </div>
+              <div className="form-group full-width">
+                <label>About</label>
+                <textarea
+                  name="about"
+                  value={profileData.about}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  placeholder="Describe your hospital services and facilities..."
+                />
+              </div>
             </div>
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="phone" className="form-label">Phone</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                className="form-input"
-                value={profileData.phone}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
+          {/* Contact Information */}
+          <div className="form-section">
+            <div className="section-header">
+              <div className="section-icon">
+                {Icons.users}
+              </div>
+              <h3>Contact Information</h3>
+            </div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={profileData.email}
+                  onChange={handleChange}
+                  disabled={true} // Email usually shouldn't be changed
+                />
+              </div>
+              <div className="form-group">
+                <label>Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={profileData.phone}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="form-section">
+            <div className="section-header">
+              <div className="section-icon">
+                {Icons.package}
+              </div>
+              <h3>Location Details</h3>
+            </div>
+            <div className="form-grid">
+              <div className="form-group full-width">
+                <label>Street Address</label>
+                <input
+                  type="text"
+                  name="street"
+                  value={profileData.street}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                />
+              </div>
+              <div className="form-group">
+                <label>City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={profileData.city}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                />
+              </div>
+              <div className="form-group">
+                <label>State</label>
+                <input
+                  type="text"
+                  name="state"
+                  value={profileData.state}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                />
+              </div>
+              <div className="form-group">
+                <label>Zip Code</label>
+                <input
+                  type="text"
+                  name="zipCode"
+                  value={profileData.zipCode}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <h3>Address Information</h3>
-          <div className="form-grid">
-            <div className="form-group full-width">
-              <label htmlFor="street" className="form-label">Street Address</label>
-              <input
-                type="text"
-                id="street"
-                name="street"
-                className="form-input"
-                value={profileData.street}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
+        {/* Sidebar Status */}
+        <div className="form-sidebar">
+          <div className="status-card">
+            <div className="verification-badge verified">
+              {Icons.check} Verified Account
             </div>
-
-            <div className="form-group">
-              <label htmlFor="city" className="form-label">City</label>
-              <input
-                type="text"
-                id="city"
-                name="city"
-                className="form-input"
-                value={profileData.city}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="state" className="form-label">State</label>
-              <input
-                type="text"
-                id="state"
-                name="state"
-                className="form-input"
-                value={profileData.state}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="zipCode" className="form-label">Zip Code</label>
-              <input
-                type="text"
-                id="zipCode"
-                name="zipCode"
-                className="form-input"
-                value={profileData.zipCode}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
+            <p className="status-info">
+              Your hospital profile is verified and active. You can manage blood requests and donor interactions.
+            </p>
           </div>
         </div>
-
-        <div className="card">
-          <h3>Description</h3>
-          <div className="form-group">
-            <label htmlFor="about" className="form-label">About Hospital</label>
-            <textarea
-              id="about"
-              name="about"
-              className="form-textarea"
-              value={profileData.about}
-              onChange={handleChange}
-              disabled={!isEditing}
-              rows="4"
-            />
-          </div>
-        </div>
-
-        {isEditing && (
-          <div className="form-actions">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="btn btn-secondary"
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        )}
       </form>
     </div>
   )

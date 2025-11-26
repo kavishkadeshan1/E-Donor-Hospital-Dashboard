@@ -211,13 +211,10 @@ function DonorList() {
                 <td>{typeof donor.totalDonations === 'number' ? donor.totalDonations : '—'}</td>
                 <td>
                   <div className="action-buttons">
-                    <Link to={`/donors/${donor.id}`} className="btn-action">
-                      View
-                    </Link>
                     <button 
                       onClick={() => handleMessageClick(donor)} 
                       className="btn-action btn-message"
-                      style={{ marginLeft: '8px', backgroundColor: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer' }}
+                      style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer' }}
                     >
                       Message
                     </button>

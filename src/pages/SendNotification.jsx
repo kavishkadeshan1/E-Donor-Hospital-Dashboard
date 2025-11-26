@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { notificationService } from '../services/firebaseService'
+import { Icons } from '../components/Icons'
 import './SendNotification.css'
 
 function SendNotification() {
@@ -40,25 +41,25 @@ function SendNotification() {
       title: 'Urgent Blood Needed', 
       body: 'We urgently need O- blood donations. Please donate if you can help save lives.', 
       type: 'urgent',
-      icon: '🚨'
+      icon: 'alert'
     },
     { 
       title: 'Blood Drive Event', 
       body: 'Join our blood drive event this weekend at City Hall from 9 AM to 5 PM.', 
       type: 'event',
-      icon: '📅'
+      icon: 'calendar'
     },
     { 
       title: 'Donation Reminder', 
       body: 'It\'s been 3 months since your last donation. You\'re eligible to donate again!', 
       type: 'reminder',
-      icon: '⏰'
+      icon: 'clock'
     },
     { 
       title: 'Thank You for Donating', 
       body: 'Thank you for your recent donation. You\'ve helped save lives in our community!', 
       type: 'general',
-      icon: '❤️'
+      icon: 'heart'
     }
   ]
 
@@ -181,7 +182,7 @@ function SendNotification() {
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card stat-primary">
-          <div className="stat-icon">📱</div>
+          <div className="stat-icon">{Icons.smartphone}</div>
           <div className="stat-content">
             <div className="stat-value">1,245</div>
             <div className="stat-label">Active Users</div>
@@ -189,7 +190,7 @@ function SendNotification() {
         </div>
 
         <div className="stat-card stat-success">
-          <div className="stat-icon">📤</div>
+          <div className="stat-icon">{Icons.send}</div>
           <div className="stat-content">
             <div className="stat-value">28</div>
             <div className="stat-label">Sent Today</div>
@@ -197,7 +198,7 @@ function SendNotification() {
         </div>
 
         <div className="stat-card stat-warning">
-          <div className="stat-icon">⚡</div>
+          <div className="stat-icon">{Icons.zap}</div>
           <div className="stat-content">
             <div className="stat-value">4</div>
             <div className="stat-label">Quick Templates</div>
@@ -205,7 +206,7 @@ function SendNotification() {
         </div>
 
         <div className="stat-card stat-info">
-          <div className="stat-icon">📊</div>
+          <div className="stat-icon">{Icons.barChart}</div>
           <div className="stat-content">
             <div className="stat-value">87%</div>
             <div className="stat-label">Open Rate</div>
@@ -215,7 +216,7 @@ function SendNotification() {
 
       {/* Quick Templates */}
       <div className="card">
-        <h3>⚡ Quick Templates</h3>
+        <h3><span className="section-icon">{Icons.zap}</span> Quick Templates</h3>
         <div className="templates-grid">
           {notificationTemplates.map((template, index) => (
             <button
@@ -224,7 +225,12 @@ function SendNotification() {
               onClick={() => applyTemplate(template)}
               type="button"
             >
-              <span className="template-icon-large">{template.icon}</span>
+              <span className="template-icon-large">
+                {template.icon === 'alert' && Icons.alertCircle}
+                {template.icon === 'calendar' && Icons.calendar}
+                {template.icon === 'clock' && Icons.clock}
+                {template.icon === 'heart' && Icons.heart}
+              </span>
               <div className="template-title">{template.title}</div>
               <div className="template-type">{template.type}</div>
             </button>
@@ -234,12 +240,12 @@ function SendNotification() {
 
       {/* Notification Form */}
       <div className="card">
-        <h3>📝 Create Notification</h3>
+        <h3><span className="section-icon">{Icons.edit}</span> Create Notification</h3>
         
         <form onSubmit={handleSubmit} className="notification-form">
           {success && (
             <div className="success-message">
-              <span className="success-icon">✅</span>
+              <span className="success-icon">{Icons.checkCircle}</span>
               <div>
                 <strong>Notification Sent Successfully!</strong>
                 <p>
@@ -254,7 +260,7 @@ function SendNotification() {
 
           {error && (
             <div className="error-message">
-              <span className="error-icon">⚠️</span>
+              <span className="error-icon">{Icons.alertTriangle}</span>
               <div>
                 <strong>Error</strong>
                 <p>{error}</p>
@@ -288,10 +294,10 @@ function SendNotification() {
                 value={formData.type}
                 onChange={handleChange}
               >
-                <option value="general">📢 General</option>
-                <option value="urgent">🚨 Urgent</option>
-                <option value="reminder">⏰ Reminder</option>
-                <option value="event">📅 Event</option>
+                <option value="general">General</option>
+                <option value="urgent">Urgent</option>
+                <option value="reminder">Reminder</option>
+                <option value="event">Event</option>
               </select>
             </div>
           </div>
@@ -322,10 +328,10 @@ function SendNotification() {
                 value={formData.targetAudience}
                 onChange={handleChange}
               >
-                <option value="all">👥 All Users</option>
-                <option value="specific">👤 Specific User</option>
-                <option value="donors">🩸 Active Donors Only</option>
-                <option value="recipients">🏥 Recipients Only</option>
+                <option value="all">All Users</option>
+                <option value="specific">Specific User</option>
+                <option value="donors">Active Donors Only</option>
+                <option value="recipients">Recipients Only</option>
                 <optgroup label="By Blood Type">
                   <option value="O+">O+ Blood Type</option>
                   <option value="O-">O- Blood Type</option>
@@ -348,9 +354,9 @@ function SendNotification() {
                 value={formData.priority}
                 onChange={handleChange}
               >
-                <option value="normal">🔵 Normal</option>
-                <option value="high">🟠 High</option>
-                <option value="critical">🔴 Critical</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
               </select>
             </div>
           </div>
@@ -409,7 +415,7 @@ function SendNotification() {
               </>
             ) : (
               <>
-                📤 Send Notification
+                <span style={{display: 'inline-flex', marginRight: '8px'}}>{Icons.send}</span> Send Notification
               </>
             )}
           </button>

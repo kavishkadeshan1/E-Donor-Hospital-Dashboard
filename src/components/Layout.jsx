@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { Icons } from './Icons'
 import './Layout.css'
 
 function Layout({ children, onLogout }) {
@@ -8,13 +9,13 @@ function Layout({ children, onLogout }) {
   const adminData = JSON.parse(localStorage.getItem('hospitalAdminData') || '{}')
 
   const menuItems = [
-    { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { path: '/donors', icon: '👥', label: 'Donors' },
-    { path: '/blood-requests', icon: '🩸', label: 'Blood Requests' },
-    { path: '/inventory', icon: '📦', label: 'Inventory' },
-    { path: '/notifications', icon: '🔔', label: 'Notifications' },
-    { path: '/profile', icon: '🏥', label: 'Hospital Profile' },
-    { path: '/settings', icon: '⚙️', label: 'Settings' }
+    { path: '/dashboard', icon: Icons.dashboard, label: 'Dashboard' },
+    { path: '/donors', icon: Icons.users, label: 'Donors' },
+    { path: '/blood-requests', icon: Icons.droplet, label: 'Blood Requests' },
+    { path: '/inventory', icon: Icons.package, label: 'Inventory' },
+    { path: '/notifications', icon: Icons.bell, label: 'Notifications' },
+    { path: '/profile', icon: Icons.hospital, label: 'Hospital Profile' },
+    { path: '/settings', icon: Icons.settings, label: 'Settings' }
   ]
 
   return (
@@ -45,7 +46,7 @@ function Layout({ children, onLogout }) {
 
         <div className="sidebar-footer">
           <button onClick={onLogout} className="logout-btn">
-            <span className="nav-icon">🚪</span>
+            <span className="nav-icon">{Icons.logOut}</span>
             {sidebarOpen && <span>Logout</span>}
           </button>
         </div>
@@ -57,7 +58,7 @@ function Layout({ children, onLogout }) {
             className="toggle-sidebar-btn"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
-            ☰
+            {Icons.menu}
           </button>
           
           <div className="header-right">

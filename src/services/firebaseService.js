@@ -652,7 +652,7 @@ export const notificationService = {
 
       // Create the notification document
       const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
-        body,
+        message: body,
         title,
         type,
         userId,
@@ -692,7 +692,7 @@ export const notificationService = {
       for (const userId of userIds) {
         try {
           const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
-            body,
+            message: body,
             title,
             type,
             userId,
@@ -783,7 +783,7 @@ export const notificationService = {
       for (const userId of userIds) {
         try {
           const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
-            body,
+            message: body,
             title,
             type,
             userId,
@@ -847,7 +847,7 @@ export const notificationService = {
       for (const userDoc of matchingUsers) {
         try {
           const notificationRef = await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
-            body,
+            message: body,
             title,
             type,
             userId: userDoc.id,

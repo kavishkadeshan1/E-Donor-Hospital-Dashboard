@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { inventoryService } from '../services/firebaseService'
+import { Icons } from '../components/Icons'
 import './Inventory.css'
 
 function Inventory() {
@@ -56,7 +57,7 @@ function Inventory() {
 
       <div className="stats-grid">
         <div className="stat-card stat-primary">
-          <div className="stat-icon">🩸</div>
+          <div className="stat-icon">{Icons.droplet}</div>
           <div className="stat-content">
             <div className="stat-value">{totalUnits}</div>
             <div className="stat-label">Total Units</div>
@@ -64,7 +65,7 @@ function Inventory() {
         </div>
 
         <div className="stat-card stat-danger">
-          <div className="stat-icon">⚠️</div>
+          <div className="stat-icon">{Icons.alertTriangle}</div>
           <div className="stat-content">
             <div className="stat-value">{criticalCount}</div>
             <div className="stat-label">Critical Levels</div>
@@ -72,7 +73,7 @@ function Inventory() {
         </div>
 
         <div className="stat-card stat-warning">
-          <div className="stat-icon">⏰</div>
+          <div className="stat-icon">{Icons.clock}</div>
           <div className="stat-content">
             <div className="stat-value">{lowCount}</div>
             <div className="stat-label">Low Stock</div>
@@ -80,7 +81,7 @@ function Inventory() {
         </div>
 
         <div className="stat-card stat-success">
-          <div className="stat-icon">✓</div>
+          <div className="stat-icon">{Icons.checkCircle}</div>
           <div className="stat-content">
             <div className="stat-value">{8 - criticalCount - lowCount}</div>
             <div className="stat-label">Adequate Stock</div>

@@ -5,6 +5,7 @@ import {
   reauthenticateWithCredential, 
   updatePassword 
 } from 'firebase/auth'
+import { Icons } from '../components/Icons'
 import './Settings.css'
 
 function Settings() {
@@ -297,13 +298,13 @@ function Settings() {
         <form onSubmit={handlePasswordSubmit} className="password-form">
           {passwordError && (
             <div className="alert alert-error">
-              <span className="alert-icon">⚠️</span>
+              <span className="alert-icon">{Icons.alertTriangle}</span>
               {passwordError}
             </div>
           )}
           {passwordSuccess && (
             <div className="alert alert-success">
-              <span className="alert-icon">✓</span>
+              <span className="alert-icon">{Icons.check}</span>
               {passwordSuccess}
             </div>
           )}

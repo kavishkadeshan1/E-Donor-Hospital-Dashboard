@@ -38,7 +38,7 @@ if (isConfigured) {
     console.error('Firebase initialization error:', error)
   }
 } else {
-  console.warn('⚠️ Firebase not configured. Add credentials to .env file to enable real-time features.')
+  console.warn('Firebase not configured. Add credentials to .env file to enable real-time features.')
 }
 
 export { app, auth, db, messaging, isConfigured }

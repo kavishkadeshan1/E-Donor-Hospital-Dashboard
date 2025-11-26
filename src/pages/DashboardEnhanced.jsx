@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts'
 import { dashboardService, inventoryService, requestService } from '../services/firebaseService'
+import { Icons } from '../components/Icons'
 import './DashboardEnhanced.css'
 
 function DashboardEnhanced() {
@@ -18,8 +19,19 @@ function DashboardEnhanced() {
   const [bloodTypeDistribution, setBloodTypeDistribution] = useState([])
   const [weeklyTrends, setWeeklyTrends] = useState([])
   const [inventory, setInventory] = useState([])
+  const [hospitalName, setHospitalName] = useState('Hospital Admin')
 
   useEffect(() => {
+    const adminData = localStorage.getItem('hospitalAdminData')
+    if (adminData) {
+      try {
+        const parsed = JSON.parse(adminData)
+        setHospitalName(parsed.name || 'Hospital Admin')
+      } catch (e) {
+        console.error('Error parsing admin data', e)
+      }
+    }
+
     loadDashboardData()
     
     // Set up real-time listeners
@@ -88,241 +100,225 @@ function DashboardEnhanced() {
     return colors[bloodType] || '#DC143C'
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'good': return '#10B981'
-      case 'low': return '#F59E0B'
-      case 'critical': return '#EF4444'
-      default: return '#6B7280'
-    }
+  const formatDate = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date)
   }
 
   if (loading) {
     return (
-      <div className="dashboard-enhanced">
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading dashboard...</p>
-        </div>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading dashboard...</p>
       </div>
     )
   }
 
   return (
     <div className="dashboard-enhanced">
-      <div className="page-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p>Real-time analytics and blood donation insights</p>
+      {/* Welcome Section */}
+      <div className="welcome-section">
+        <div className="welcome-content">
+          <h1>Welcome back, {hospitalName}</h1>
+          <p>Here's what's happening in your hospital today.</p>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="stats-grid">
-        <div className="stat-card stat-primary">
-          <div className="stat-icon">👥</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.totalDonors}</div>
-            <div className="stat-label">Total Donors</div>
-            <div className="stat-change positive">+12% from last month</div>
-          </div>
-        </div>
-
-        <div className="stat-card stat-success">
-          <div className="stat-icon">✅</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.activeDonors}</div>
-            <div className="stat-label">Active Donors</div>
-            <div className="stat-change positive">+8% from last month</div>
-          </div>
-        </div>
-
-        <div className="stat-card stat-warning">
-          <div className="stat-icon">📋</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.pendingRequests}</div>
-            <div className="stat-label">Pending Requests</div>
-            <div className="stat-change negative">-3 from yesterday</div>
-          </div>
-        </div>
-
-        <div className="stat-card stat-danger">
-          <div className="stat-icon">🩸</div>
-          <div className="stat-content">
-            <div className="stat-value">{stats.bloodUnitsAvailable}</div>
-            <div className="stat-label">Blood Units Available</div>
-            <div className="stat-change positive">+15 units today</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Row */}
-      <div className="charts-grid">
-        {/* Weekly Trends */}
-        <div className="card chart-card">
-          <h3>Weekly Donation Trends</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={weeklyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="donations" 
-                stroke="#DC143C" 
-                strokeWidth={2}
-                name="Donations"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="requests" 
-                stroke="#10B981" 
-                strokeWidth={2}
-                name="Requests"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Blood Type Distribution */}
-        <div className="card chart-card">
-          <h3>Blood Type Distribution</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={bloodTypeDistribution}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {bloodTypeDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Inventory Status Bar Chart */}
-      <div className="card chart-card-full">
-        <h3>Blood Inventory Status</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={inventory}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="bloodType" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#fff', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px'
-              }}
-            />
-            <Legend />
-            <Bar dataKey="units" fill="#DC143C" name="Available Units" />
-            <Bar dataKey="minRequired" fill="#10B981" name="Minimum Required" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="activity-grid">
-        {/* Recent Donations */}
-        <div className="card">
-          <div className="card-header">
-            <h3>Recent Donations</h3>
-            <Link to="/donors" className="view-all-link">View All →</Link>
-          </div>
-          <div className="activity-list">
-            {recentDonations.length > 0 ? (
-              recentDonations.map(donation => (
-                <div key={donation.id} className="activity-item">
-                  <div className="activity-icon" style={{ backgroundColor: getBloodTypeColor(donation.bloodType) }}>
-                    {donation.bloodType}
-                  </div>
-                  <div className="activity-details">
-                    <div className="activity-title">{donation.donorName}</div>
-                    <div className="activity-meta">
-                      {donation.units} unit · {donation.date}
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <p>No recent donations</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Urgent Requests */}
-        <div className="card">
-          <div className="card-header">
-            <h3>Urgent Blood Requests</h3>
-            <Link to="/blood-requests" className="view-all-link">View All →</Link>
-          </div>
-          <div className="activity-list">
-            {urgentRequests.length > 0 ? (
-              urgentRequests.map(request => (
-                <div key={request.id} className="activity-item">
-                  <div className={`activity-icon ${request.urgency === 'critical' ? 'critical' : 'urgent'}`}>
-                    {request.bloodType}
-                  </div>
-                  <div className="activity-details">
-                    <div className="activity-title">{request.patientName}</div>
-                    <div className="activity-meta">
-                      {request.units} units needed · {request.hospital}
-                    </div>
-                  </div>
-                  <span className={`badge badge-${request.urgency === 'critical' ? 'danger' : 'warning'}`}>
-                    {request.urgency}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <p>No urgent requests</p>
-              </div>
-            )}
-          </div>
-        </div>
+        <div className="welcome-decoration"></div>
       </div>
 
       {/* Quick Actions */}
-      <div className="quick-actions">
-        <h3>Quick Actions</h3>
-        <div className="action-buttons">
-          <Link to="/donors/add" className="action-btn btn-primary">
-            <span className="action-icon">👤</span>
-            Add New Donor
-          </Link>
-          <Link to="/blood-requests" className="action-btn btn-warning">
-            <span className="action-icon">📋</span>
-            Manage Requests
-          </Link>
-          <Link to="/inventory" className="action-btn btn-danger">
-            <span className="action-icon">🩸</span>
-            Update Inventory
-          </Link>
-          <Link to="/notifications" className="action-btn btn-info">
-            <span className="action-icon">🔔</span>
-            Send Notification
-          </Link>
+      <div className="section-title">
+        {Icons.menu} Quick Actions
+      </div>
+      <div className="quick-actions-grid">
+        <Link to="/donors/add" className="quick-action-card">
+          <div className="action-icon-wrapper bg-blue">
+            {Icons.userPlus}
+          </div>
+          <h3>Add Donor</h3>
+          <p>Register a new blood donor</p>
+        </Link>
+        <Link to="/blood-requests" className="quick-action-card">
+          <div className="action-icon-wrapper bg-red">
+            {Icons.droplet}
+          </div>
+          <h3>Request Blood</h3>
+          <p>Create a new blood request</p>
+        </Link>
+        <Link to="/inventory" className="quick-action-card">
+          <div className="action-icon-wrapper bg-green">
+            {Icons.package}
+          </div>
+          <h3>Update Inventory</h3>
+          <p>Manage blood stock levels</p>
+        </Link>
+        <Link to="/notifications" className="quick-action-card">
+          <div className="action-icon-wrapper bg-purple">
+            {Icons.bell}
+          </div>
+          <h3>Send Alert</h3>
+          <p>Notify donors of urgent needs</p>
+        </Link>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="section-title">
+        {Icons.dashboard} Overview
+      </div>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon-box primary">
+            {Icons.users}
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.totalDonors}</div>
+            <div className="stat-label">Total Donors</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon-box success">
+            {Icons.droplet}
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.bloodUnitsAvailable}</div>
+            <div className="stat-label">Units Available</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon-box warning">
+            {Icons.bell}
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.pendingRequests}</div>
+            <div className="stat-label">Pending Requests</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon-box info">
+            {Icons.user}
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.activeDonors}</div>
+            <div className="stat-label">Active Donors</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="dashboard-main-grid">
+        {/* Left Column: Charts */}
+        <div className="charts-column">
+          <div className="chart-section">
+            <div className="chart-header">
+              <h2>Weekly Donation Trends</h2>
+            </div>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <AreaChart data={weeklyTrends}>
+                  <defs>
+                    <linearGradient id="colorDonations" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#dc2626" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Area type="monotone" dataKey="donations" stroke="#dc2626" fillOpacity={1} fill="url(#colorDonations)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="chart-section">
+            <div className="chart-header">
+              <h2>Blood Type Distribution</h2>
+            </div>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={bloodTypeDistribution}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {bloodTypeDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Activity */}
+        <div className="activity-column">
+          {/* Urgent Requests */}
+          <div className="chart-section">
+            <div className="chart-header">
+              <h2>Urgent Requests</h2>
+              <Link to="/blood-requests" style={{ fontSize: '14px', color: '#dc2626', textDecoration: 'none', fontWeight: 600 }}>View All</Link>
+            </div>
+            <div className="activity-list">
+              {urgentRequests.length > 0 ? (
+                urgentRequests.map(request => (
+                  <div key={request.id} className="activity-item">
+                    <div className="activity-icon" style={{ color: '#dc2626', background: '#fee2e2' }}>
+                      {Icons.droplet}
+                    </div>
+                    <div className="activity-details">
+                      <div className="activity-title">{request.bloodType} Blood Needed</div>
+                      <div className="activity-time">{request.hospitalName}  {request.urgency}</div>
+                    </div>
+                    <span className={`status-badge ${request.urgency}`}>
+                      {request.urgency}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>
+                  No urgent requests
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Donations */}
+          <div className="chart-section">
+            <div className="chart-header">
+              <h2>Recent Donations</h2>
+              <Link to="/donors" style={{ fontSize: '14px', color: '#dc2626', textDecoration: 'none', fontWeight: 600 }}>View All</Link>
+            </div>
+            <div className="activity-list">
+              {recentDonations.length > 0 ? (
+                recentDonations.map(donation => (
+                  <div key={donation.id} className="activity-item">
+                    <div className="activity-icon" style={{ color: '#16a34a', background: '#dcfce7' }}>
+                      {Icons.user}
+                    </div>
+                    <div className="activity-details">
+                      <div className="activity-title">{donation.donorName}</div>
+                      <div className="activity-time">{donation.bloodType}  {formatDate(donation.date)}</div>
+                    </div>
+                    <span className="status-badge normal">
+                      Completed
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>
+                  No recent donations
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

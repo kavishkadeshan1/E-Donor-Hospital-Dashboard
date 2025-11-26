@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Icons } from '../components/Icons'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -46,7 +47,7 @@ function Dashboard() {
 
       <div className="stats-grid">
         <div className="stat-card stat-primary">
-          <div className="stat-icon">👥</div>
+          <div className="stat-icon">{Icons.users}</div>
           <div className="stat-content">
             <div className="stat-value">{stats.totalDonors}</div>
             <div className="stat-label">Total Donors</div>
@@ -54,7 +55,7 @@ function Dashboard() {
         </div>
 
         <div className="stat-card stat-success">
-          <div className="stat-icon">✓</div>
+          <div className="stat-icon">{Icons.checkCircle}</div>
           <div className="stat-content">
             <div className="stat-value">{stats.activeDonors}</div>
             <div className="stat-label">Active Donors</div>
@@ -62,7 +63,7 @@ function Dashboard() {
         </div>
 
         <div className="stat-card stat-warning">
-          <div className="stat-icon">⏰</div>
+          <div className="stat-icon">{Icons.clock}</div>
           <div className="stat-content">
             <div className="stat-value">{stats.pendingRequests}</div>
             <div className="stat-label">Pending Requests</div>
@@ -70,7 +71,7 @@ function Dashboard() {
         </div>
 
         <div className="stat-card stat-info">
-          <div className="stat-icon">🩸</div>
+          <div className="stat-icon">{Icons.droplet}</div>
           <div className="stat-content">
             <div className="stat-value">{stats.bloodUnitsAvailable}</div>
             <div className="stat-label">Blood Units Available</div>

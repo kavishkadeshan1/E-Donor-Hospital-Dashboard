@@ -1,43 +1,108 @@
 .hospital-profile {
-  max-width: 900px;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.5s ease-in-out;
 }
 
-.page-header {
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Profile Header */
+.profile-header-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  background: linear-gradient(to right, #ffffff, #f9fafb);
 }
 
-.page-header h1 {
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.hospital-avatar {
+  width: 80px;
+  height: 80px;
+  background: var(--gradient-primary);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.hospital-info h1 {
   font-size: 28px;
+  font-weight: 700;
   color: var(--text-dark);
   margin-bottom: 8px;
 }
 
-.page-header p {
+.hospital-info p {
   color: var(--text-light);
-  font-size: 14px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+/* Form Layout */
 .profile-form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
   gap: 24px;
 }
 
-.profile-form .card {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+@media (max-width: 1024px) {
+  .profile-form {
+    grid-template-columns: 1fr;
+  }
 }
 
-.profile-form h3 {
+.form-section {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-header h3 {
   font-size: 18px;
-  color: var(--text-dark);
   font-weight: 600;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-color);
+  color: var(--text-dark);
 }
 
 .form-grid {
@@ -46,37 +111,147 @@
   gap: 20px;
 }
 
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .form-group.full-width {
   grid-column: 1 / -1;
 }
 
-.form-actions {
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s;
+  background: var(--input-bg);
+  color: var(--text-dark);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-group input:disabled,
+.form-group textarea:disabled {
+  background: var(--light-bg);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Status Card */
+.status-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.verification-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.verification-badge.verified {
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--success-color);
+}
+
+.verification-badge.pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-color);
+}
+
+.status-info {
+  color: var(--text-light);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 20px;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
 }
 
-.form-actions button {
-  min-width: 120px;
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
+.btn-secondary {
+  background: white;
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
 
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+.btn-secondary:hover {
+  background: var(--light-bg);
+  border-color: var(--text-light);
+}
 
-  .form-actions {
-    flex-direction: column-reverse;
-  }
+/* Dark Mode */
+[data-theme="dark"] .profile-header-card,
+[data-theme="dark"] .form-section,
+[data-theme="dark"] .status-card {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
 
-  .form-actions button {
-    width: 100%;
-  }
+[data-theme="dark"] .profile-header-card {
+  background: linear-gradient(to right, var(--card-bg), var(--dark-bg));
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: transparent;
+  color: var(--text-dark);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
 }

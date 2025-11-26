@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import Login from './pages/Login'
 import DashboardEnhanced from './pages/DashboardEnhanced'
 import DonorList from './pages/DonorList'
-import DonorDetails from './pages/DonorDetails'
 import AddDonor from './pages/AddDonor'
 import BloodRequests from './pages/BloodRequests'
 import Inventory from './pages/Inventory'
@@ -56,7 +55,6 @@ function App() {
                 <Routes>
                   <Route path="/dashboard" element={<DashboardEnhanced />} />
                   <Route path="/donors" element={<DonorList />} />
-                  <Route path="/donors/:id" element={<DonorDetails />} />
                   <Route path="/donors/add" element={<AddDonor />} />
                   <Route path="/blood-requests" element={<BloodRequests />} />
                   <Route path="/inventory" element={<Inventory />} />
