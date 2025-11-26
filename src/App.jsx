@@ -21,6 +21,12 @@ function App() {
     if (token) {
       setIsAuthenticated(true)
     }
+    
+    // Initialize dark mode from localStorage
+    const savedDarkMode = localStorage.getItem('darkMode')
+    if (savedDarkMode && JSON.parse(savedDarkMode)) {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    }
   }, [])
 
   const handleLogin = () => {

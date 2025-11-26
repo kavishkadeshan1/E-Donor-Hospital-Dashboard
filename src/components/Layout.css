@@ -116,7 +116,7 @@
 }
 
 .header {
-  background-color: white;
+  background-color: var(--card-bg);
   padding: 16px 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -125,6 +125,7 @@
   position: sticky;
   top: 0;
   z-index: 90;
+  transition: background-color 0.3s ease;
 }
 
 .toggle-sidebar-btn {
@@ -182,6 +183,18 @@
   flex: 1;
   padding: 24px;
   background-color: var(--light-bg);
+  transition: background-color 0.3s ease;
+}
+
+/* Dark mode specific Layout styles */
+[data-theme="dark"] .sidebar {
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .header {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
 }
 
 @media (max-width: 768px) {

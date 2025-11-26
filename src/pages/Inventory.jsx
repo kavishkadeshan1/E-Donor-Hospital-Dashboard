@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react'
+import { inventoryService } from '../services/firebaseService'
 import './Inventory.css'
 
 function Inventory() {
   const [inventory, setInventory] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate API call - Replace with actual API
-    const mockInventory = [
-      { bloodType: 'O+', units: 45, status: 'good', lastUpdated: '2025-11-24', minRequired: 30 },
-      { bloodType: 'O-', units: 12, status: 'low', lastUpdated: '2025-11-24', minRequired: 20 },
-      { bloodType: 'A+', units: 38, status: 'good', lastUpdated: '2025-11-23', minRequired: 25 },
-      { bloodType: 'A-', units: 8, status: 'critical', lastUpdated: '2025-11-23', minRequired: 15 },
-      { bloodType: 'B+', units: 28, status: 'good', lastUpdated: '2025-11-24', minRequired: 20 },
-      { bloodType: 'B-', units: 6, status: 'critical', lastUpdated: '2025-11-22', minRequired: 12 },
-      { bloodType: 'AB+', units: 15, status: 'good', lastUpdated: '2025-11-24', minRequired: 10 },
-      { bloodType: 'AB-', units: 4, status: 'critical', lastUpdated: '2025-11-23', minRequired: 8 }
-    ]
-    setInventory(mockInventory)
+    const unsubscribe = inventoryService.subscribe((data) => {
+      setInventory(data)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const getStatusClass = (status) => {

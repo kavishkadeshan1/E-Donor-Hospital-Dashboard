@@ -1,7 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { auth, isConfigured } from '../lib/firebase'
+import { 
+  EmailAuthProvider, 
+  reauthenticateWithCredential, 
+  updatePassword 
+} from 'firebase/auth'
 import './Settings.css'
 
 function Settings() {
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode')
+    return saved ? JSON.parse(saved) : false
+  })
+
   const [settings, setSettings] = useState({
     emailNotifications: true,
     smsNotifications: false,
@@ -12,11 +23,29 @@ function Settings() {
     maintenanceMode: false
   })
 
+  // Apply dark mode on mount and when changed
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode))
+  }, [darkMode])
+
+  const handleDarkModeToggle = () => {
+    setDarkMode(!darkMode)
+  }
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
+
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
 
   const handleSettingChange = (setting) => {
     setSettings({
@@ -30,20 +59,83 @@ function Settings() {
       ...passwordData,
       [e.target.name]: e.target.value
     })
+    // Clear messages when user starts typing
+    setPasswordError('')
+    setPasswordSuccess('')
   }
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault()
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    // Validation
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Passwords do not match!')
+      setPasswordError('New passwords do not match!')
       return
     }
-    alert('Password changed successfully!')
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    })
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters long')
+      return
+    }
+
+    if (!isConfigured) {
+      setPasswordError('Firebase is not configured. Please set up Firebase credentials.')
+      return
+    }
+
+    const user = auth.currentUser
+    if (!user) {
+      setPasswordError('No user is currently logged in. Please log in again.')
+      return
+    }
+
+    setPasswordLoading(true)
+
+    try {
+      // Re-authenticate user with current password
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        passwordData.currentPassword
+      )
+      
+      await reauthenticateWithCredential(user, credential)
+      
+      // Update to new password
+      await updatePassword(user, passwordData.newPassword)
+      
+      setPasswordSuccess('Password changed successfully!')
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+    } catch (error) {
+      console.error('Password change error:', error)
+      
+      switch (error.code) {
+        case 'auth/wrong-password':
+          setPasswordError('Current password is incorrect')
+          break
+        case 'auth/invalid-credential':
+          setPasswordError('Current password is incorrect')
+          break
+        case 'auth/too-many-requests':
+          setPasswordError('Too many failed attempts. Please try again later.')
+          break
+        case 'auth/requires-recent-login':
+          setPasswordError('Please log out and log in again before changing your password')
+          break
+        case 'auth/weak-password':
+          setPasswordError('New password is too weak. Please choose a stronger password.')
+          break
+        default:
+          setPasswordError(error.message || 'Failed to change password. Please try again.')
+      }
+    } finally {
+      setPasswordLoading(false)
+    }
   }
 
   const handleSaveSettings = () => {
@@ -56,6 +148,26 @@ function Settings() {
         <div>
           <h1>Settings</h1>
           <p>Manage application settings and preferences</p>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3>🎨 Appearance</h3>
+        <div className="settings-list">
+          <div className="setting-item">
+            <div className="setting-info">
+              <div className="setting-label">Dark Mode</div>
+              <div className="setting-description">Switch between light and dark theme for comfortable viewing</div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={darkMode}
+                onChange={handleDarkModeToggle}
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -183,6 +295,19 @@ function Settings() {
       <div className="card">
         <h3>Change Password</h3>
         <form onSubmit={handlePasswordSubmit} className="password-form">
+          {passwordError && (
+            <div className="alert alert-error">
+              <span className="alert-icon">⚠️</span>
+              {passwordError}
+            </div>
+          )}
+          {passwordSuccess && (
+            <div className="alert alert-success">
+              <span className="alert-icon">✓</span>
+              {passwordSuccess}
+            </div>
+          )}
+          
           <div className="form-group">
             <label htmlFor="currentPassword" className="form-label">Current Password</label>
             <input
@@ -193,6 +318,7 @@ function Settings() {
               value={passwordData.currentPassword}
               onChange={handlePasswordChange}
               required
+              disabled={passwordLoading}
             />
           </div>
 
@@ -206,7 +332,10 @@ function Settings() {
               value={passwordData.newPassword}
               onChange={handlePasswordChange}
               required
+              disabled={passwordLoading}
+              minLength={6}
             />
+            <span className="form-hint">Password must be at least 6 characters</span>
           </div>
 
           <div className="form-group">
@@ -219,12 +348,13 @@ function Settings() {
               value={passwordData.confirmPassword}
               onChange={handlePasswordChange}
               required
+              disabled={passwordLoading}
             />
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary">
-              Update Password
+            <button type="submit" className="btn btn-primary" disabled={passwordLoading}>
+              {passwordLoading ? 'Updating...' : 'Update Password'}
             </button>
           </div>
         </form>

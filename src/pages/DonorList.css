@@ -1,84 +1,159 @@
 .donor-list {
+  padding: 24px;
   max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .page-header h1 {
-  font-size: 28px;
-  margin-bottom: 8px;
+  font-size: 32px;
+  font-weight: 700;
   color: var(--text-dark);
+  margin-bottom: 8px;
 }
 
 .page-header p {
   color: var(--text-light);
-  font-size: 14px;
+  font-size: 16px;
 }
 
+/* Filters */
 .filters-card {
-  margin-bottom: 20px;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 32px;
+  border: 1px solid var(--border-color);
 }
 
 .filters {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+  align-items: center;
 }
 
 .search-box {
   flex: 1;
+  position: relative;
 }
 
 .search-box input {
   width: 100%;
+  padding: 12px 16px;
+  padding-left: 44px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.search-box::before {
+  content: "🔍";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.5;
 }
 
 .filter-group {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
 .filter-group select {
-  flex: 1;
-  min-width: 150px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 15px;
+  min-width: 180px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.table-header {
-  padding: 16px 16px 0 16px;
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
 }
 
-.table-header h3 {
-  font-size: 16px;
-  color: var(--text-dark);
+/* Table */
+.table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background: var(--light-bg);
+  padding: 16px 24px;
+  text-align: left;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table td {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover {
+  background-color: #f9fafb;
 }
 
 .donor-name {
   font-weight: 600;
   color: var(--text-dark);
+  font-size: 15px;
 }
 
 .donor-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .role-pill {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   padding: 2px 8px;
   border-radius: 999px;
   background-color: #eef2ff;
   color: #4338ca;
   border: 1px solid #c7d2fe;
+  font-weight: 600;
 }
 
 .role-pill-muted {
@@ -87,16 +162,15 @@
   border-color: #e2e8f0;
 }
 
-.hospital-name {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--text-light);
-}
-
 .contact-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.contact-info .email {
+  color: var(--text-dark);
+  font-size: 14px;
 }
 
 .contact-info .phone {
@@ -104,46 +178,130 @@
   color: var(--text-light);
 }
 
-.btn-action {
-  padding: 6px 16px;
-  background-color: var(--light-bg);
+.badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-success {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.blood-type-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-color: #fee2e2;
   color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-action {
+  padding: 8px 16px;
+  background-color: white;
+  color: var(--text-dark);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: 6px;
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
 
 .btn-action:hover {
+  background-color: var(--light-bg);
+  border-color: var(--text-light);
+}
+
+.btn-action.primary {
   background-color: var(--primary-color);
   color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-action.primary:hover {
+  background-color: var(--secondary-color);
 }
 
 .no-results {
-  padding: 40px;
+  padding: 60px;
   text-align: center;
   color: var(--text-light);
+  font-size: 16px;
 }
 
 @media (max-width: 768px) {
+  .donor-list {
+    padding: 16px;
+  }
+
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
   }
 
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .filter-group {
     flex-direction: column;
   }
 
-  .table {
-    font-size: 12px;
+  .table-container {
+    overflow-x: auto;
   }
+}
 
-  .table th,
-  .table td {
-    padding: 8px;
-  }
+/* Dark Mode Styles */
+[data-theme="dark"] .filters-card {
+  background: var(--card-bg);
+}
+
+[data-theme="dark"] .table-container {
+  background: var(--card-bg);
+}
+
+[data-theme="dark"] .table tr:hover {
+  background-color: var(--dark-bg);
+}
+
+[data-theme="dark"] .btn-action {
+  background-color: var(--card-bg);
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] .btn-action:hover {
+  background-color: var(--dark-bg);
+}
+
+[data-theme="dark"] .blood-type-badge {
+  background-color: rgba(239, 68, 68, 0.2);
 }

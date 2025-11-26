@@ -313,3 +313,25 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Dark Mode Styles */
+[data-theme="dark"] .stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .chart-card-full {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .activity-item {
+  background: var(--dark-bg);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .quick-actions {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
