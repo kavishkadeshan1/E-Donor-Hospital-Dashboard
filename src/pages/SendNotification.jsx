@@ -41,25 +41,25 @@ function SendNotification() {
       title: 'Urgent Blood Needed', 
       body: 'We urgently need O- blood donations. Please donate if you can help save lives.', 
       type: 'urgent',
-      icon: 'alert'
+      icon: Icons.droplet
     },
     { 
       title: 'Blood Drive Event', 
       body: 'Join our blood drive event this weekend at City Hall from 9 AM to 5 PM.', 
       type: 'event',
-      icon: 'calendar'
+      icon: Icons.calendar || Icons.bell
     },
     { 
       title: 'Donation Reminder', 
-      body: 'It\'s been 3 months since your last donation. You\'re eligible to donate again!', 
+      body: "It's been 3 months since your last donation. You're eligible to donate again!", 
       type: 'reminder',
-      icon: 'clock'
+      icon: Icons.clock || Icons.bell
     },
     { 
       title: 'Thank You for Donating', 
-      body: 'Thank you for your recent donation. You\'ve helped save lives in our community!', 
+      body: "Thank you for your recent donation. You've helped save lives in our community!", 
       type: 'general',
-      icon: 'heart'
+      icon: Icons.heart || Icons.user
     }
   ]
 
@@ -172,254 +172,212 @@ function SendNotification() {
 
   return (
     <div className="send-notification">
+      {/* Header */}
       <div className="page-header">
-        <div>
+        <div className="header-content">
           <h1>Send Notification</h1>
           <p>Send push notifications to E-Donor mobile app users</p>
+        </div>
+        <div className="header-actions">
+          {/* Optional: Add header actions here */}
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="stats-grid">
-        <div className="stat-card stat-primary">
-          <div className="stat-icon">{Icons.smartphone}</div>
+        <div className="stat-card">
+          <div className="stat-icon-box primary">
+            {Icons.users}
+          </div>
           <div className="stat-content">
             <div className="stat-value">1,245</div>
             <div className="stat-label">Active Users</div>
           </div>
         </div>
 
-        <div className="stat-card stat-success">
-          <div className="stat-icon">{Icons.send}</div>
+        <div className="stat-card">
+          <div className="stat-icon-box success">
+            {Icons.bell}
+          </div>
           <div className="stat-content">
             <div className="stat-value">28</div>
             <div className="stat-label">Sent Today</div>
           </div>
         </div>
 
-        <div className="stat-card stat-warning">
-          <div className="stat-icon">{Icons.zap}</div>
-          <div className="stat-content">
-            <div className="stat-value">4</div>
-            <div className="stat-label">Quick Templates</div>
+        <div className="stat-card">
+          <div className="stat-icon-box warning">
+            {Icons.droplet}
           </div>
-        </div>
-
-        <div className="stat-card stat-info">
-          <div className="stat-icon">{Icons.barChart}</div>
           <div className="stat-content">
-            <div className="stat-value">87%</div>
-            <div className="stat-label">Open Rate</div>
+            <div className="stat-value">5</div>
+            <div className="stat-label">Urgent Alerts</div>
           </div>
         </div>
       </div>
 
-      {/* Quick Templates */}
-      <div className="card">
-        <h3><span className="section-icon">{Icons.zap}</span> Quick Templates</h3>
-        <div className="templates-grid">
-          {notificationTemplates.map((template, index) => (
-            <button
-              key={index}
-              className="template-card"
-              onClick={() => applyTemplate(template)}
-              type="button"
-            >
-              <span className="template-icon-large">
-                {template.icon === 'alert' && Icons.alertCircle}
-                {template.icon === 'calendar' && Icons.calendar}
-                {template.icon === 'clock' && Icons.clock}
-                {template.icon === 'heart' && Icons.heart}
-              </span>
-              <div className="template-title">{template.title}</div>
-              <div className="template-type">{template.type}</div>
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="notification-content">
+        {/* Main Form */}
+        <div className="form-card">
+          <div className="card-header">
+            {Icons.bell}
+            <h2>Compose Message</h2>
+          </div>
 
-      {/* Notification Form */}
-      <div className="card">
-        <h3><span className="section-icon">{Icons.edit}</span> Create Notification</h3>
-        
-        <form onSubmit={handleSubmit} className="notification-form">
           {success && (
-            <div className="success-message">
-              <span className="success-icon">{Icons.checkCircle}</span>
+            <div className="message-box success">
+              {Icons.check}
               <div>
-                <strong>Notification Sent Successfully!</strong>
-                <p>
-                  {sentCount > 0 
-                    ? `Your message has been delivered to ${sentCount} mobile app user${sentCount !== 1 ? 's' : ''}.`
-                    : 'Notification created! Check Firebase userNotifications collection.'
-                  }
-                </p>
+                <strong>Success!</strong> Notification sent to {sentCount} users.
               </div>
             </div>
           )}
 
           {error && (
-            <div className="error-message">
-              <span className="error-icon">{Icons.alertTriangle}</span>
+            <div className="message-box error">
+              {Icons.alert}
               <div>
-                <strong>Error</strong>
-                <p>{error}</p>
+                <strong>Error:</strong> {error}
               </div>
             </div>
           )}
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="title">Notification Title *</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                className="form-input"
-                placeholder="Enter notification title"
-                value={formData.title}
-                onChange={handleChange}
-                maxLength={50}
-                required
-              />
-              <div className="char-count">{formData.title.length} / 50 characters</div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="type">Notification Type</label>
-              <select
-                id="type"
-                name="type"
-                className="form-select"
-                value={formData.type}
-                onChange={handleChange}
-              >
-                <option value="general">General</option>
-                <option value="urgent">Urgent</option>
-                <option value="reminder">Reminder</option>
-                <option value="event">Event</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="body">Message *</label>
-            <textarea
-              id="body"
-              name="body"
-              className="form-textarea"
-              rows="5"
-              placeholder="Enter notification message (e.g., Critical shortage of O+. Please donate if you can.)"
-              value={formData.body}
-              onChange={handleChange}
-              maxLength={200}
-              required
-            />
-            <div className="char-count">{formData.body.length} / 200 characters</div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="targetAudience">Target Audience</label>
-              <select
-                id="targetAudience"
-                name="targetAudience"
-                className="form-select"
-                value={formData.targetAudience}
-                onChange={handleChange}
-              >
-                <option value="all">All Users</option>
-                <option value="specific">Specific User</option>
-                <option value="donors">Active Donors Only</option>
-                <option value="recipients">Recipients Only</option>
-                <optgroup label="By Blood Type">
-                  <option value="O+">O+ Blood Type</option>
-                  <option value="O-">O- Blood Type</option>
-                  <option value="A+">A+ Blood Type</option>
-                  <option value="A-">A- Blood Type</option>
-                  <option value="B+">B+ Blood Type</option>
-                  <option value="B-">B- Blood Type</option>
-                  <option value="AB+">AB+ Blood Type</option>
-                  <option value="AB-">AB- Blood Type</option>
-                </optgroup>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="priority">Priority Level</label>
-              <select
-                id="priority"
-                name="priority"
-                className="form-select"
-                value={formData.priority}
-                onChange={handleChange}
-              >
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-          </div>
-
-          {formData.targetAudience === 'specific' && (
-            <div className="form-group">
-              <label htmlFor="selectedUserId">Select User or Enter User ID *</label>
-              {users.length > 0 ? (
-                <select
-                  id="selectedUserId"
-                  name="selectedUserId"
-                  className="form-select"
-                  value={formData.selectedUserId}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">-- Select a user --</option>
-                  {loadingUsers ? (
-                    <option disabled>Loading users...</option>
-                  ) : (
-                    users.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name || user.email || user.id} {user.bloodType ? `(${user.bloodType})` : ''}
-                      </option>
-                    ))
-                  )}
-                </select>
-              ) : (
+          <form onSubmit={handleSubmit} className="notification-form">
+            <div className="form-grid">
+              <div className="form-group full-width">
+                <label>Notification Title</label>
                 <input
                   type="text"
-                  id="selectedUserId"
-                  name="selectedUserId"
-                  className="form-input"
-                  placeholder="Enter user ID (e.g., Ht4CpYq4m3erygskPseZGkDw5Ws1)"
-                  value={formData.selectedUserId}
+                  name="title"
+                  className="form-control"
+                  value={formData.title}
                   onChange={handleChange}
+                  placeholder="e.g., Urgent Blood Needed: O+"
                   required
                 />
+              </div>
+
+              <div className="form-group full-width">
+                <label>Message Body</label>
+                <textarea
+                  name="body"
+                  className="form-control"
+                  value={formData.body}
+                  onChange={handleChange}
+                  placeholder="Type your message here..."
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Target Audience</label>
+                <select
+                  name="targetAudience"
+                  className="form-control"
+                  value={formData.targetAudience}
+                  onChange={handleChange}
+                >
+                  <option value="all">All Users</option>
+                  <option value="donors">All Donors</option>
+                  <option value="specific">Specific User</option>
+                  <optgroup label="By Blood Type">
+                    <option value="O+">O+ Donors</option>
+                    <option value="O-">O- Donors</option>
+                    <option value="A+">A+ Donors</option>
+                    <option value="A-">A- Donors</option>
+                    <option value="B+">B+ Donors</option>
+                    <option value="B-">B- Donors</option>
+                    <option value="AB+">AB+ Donors</option>
+                    <option value="AB-">AB- Donors</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {formData.targetAudience === 'specific' && (
+                <div className="form-group">
+                  <label>Select User</label>
+                  <select
+                    name="selectedUserId"
+                    className="form-control"
+                    value={formData.selectedUserId}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select a user...</option>
+                    {users.map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.name || user.email || 'Unknown User'} ({user.bloodType || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
-              <div className="form-hint">
-                {users.length === 0 && 'No users found in database. Enter the user ID manually from Firebase.'}
-                {users.length > 0 && `User ID: ${formData.selectedUserId || 'Select a user above'}`}
+
+              <div className="form-group">
+                <label>Notification Type</label>
+                <select
+                  name="type"
+                  className="form-control"
+                  value={formData.type}
+                  onChange={handleChange}
+                >
+                  <option value="general">General Info</option>
+                  <option value="urgent">Urgent Alert</option>
+                  <option value="event">Event</option>
+                  <option value="reminder">Reminder</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Priority</label>
+                <select
+                  name="priority"
+                  className="form-control"
+                  value={formData.priority}
+                  onChange={handleChange}
+                >
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                </select>
               </div>
             </div>
-          )}
 
-          <button 
-            type="submit" 
-            className="btn btn-primary btn-large"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="spinner-small"></span>
-                Sending Notification...
-              </>
-            ) : (
-              <>
-                <span style={{display: 'inline-flex', marginRight: '8px'}}>{Icons.send}</span> Send Notification
-              </>
-            )}
-          </button>
-        </form>
+            <button type="submit" className="btn-submit" disabled={loading}>
+              {loading ? (
+                <>Sending...</>
+              ) : (
+                <>
+                  {Icons.send} Send Notification
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Templates Sidebar */}
+        <div className="templates-section">
+          <div className="templates-card">
+            <div className="card-header">
+              {Icons.menu}
+              <h2>Quick Templates</h2>
+            </div>
+            <div className="templates-list">
+              {notificationTemplates.map((template, index) => (
+                <div
+                  key={index}
+                  className="template-item"
+                  onClick={() => applyTemplate(template)}
+                >
+                  <div className="template-header">
+                    <span className="template-icon">{template.icon}</span>
+                    <span className="template-title">{template.title}</span>
+                  </div>
+                  <p className="template-body">{template.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

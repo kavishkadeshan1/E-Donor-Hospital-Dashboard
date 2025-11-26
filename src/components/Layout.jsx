@@ -23,10 +23,7 @@ function Layout({ children, onLogout }) {
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <div className="logo">
-            <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="8" fill="#dc2626"/>
-              <path d="M24 14V34M14 24H34" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-            </svg>
+            <img src="/edonor-logo.png" alt="E-Donor" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
             {sidebarOpen && <span>E-Donor</span>}
           </div>
         </div>

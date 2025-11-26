@@ -6,6 +6,8 @@ import './Inventory.css'
 function Inventory() {
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
 
   useEffect(() => {
     const unsubscribe = inventoryService.subscribe((data) => {
@@ -19,24 +21,11 @@ function Inventory() {
   const getStatusClass = (status) => {
     switch (status) {
       case 'good':
-        return 'status-good'
+        return 'good'
       case 'low':
-        return 'status-low'
+        return 'low'
       case 'critical':
-        return 'status-critical'
-      default:
-        return ''
-    }
-  }
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'good':
-        return 'badge-success'
-      case 'low':
-        return 'badge-warning'
-      case 'critical':
-        return 'badge-danger'
+        return 'critical'
       default:
         return ''
     }
@@ -46,86 +35,165 @@ function Inventory() {
   const criticalCount = inventory.filter(item => item.status === 'critical').length
   const lowCount = inventory.filter(item => item.status === 'low').length
 
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'good':
+        return 'Adequate'
+      case 'low':
+        return 'Low Stock'
+      case 'critical':
+        return 'Critical'
+      default:
+        return status
+    }
+  }
+
+  const filteredInventory = inventory.filter(item => {
+    const matchesSearch = item.bloodType.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesFilter = filterStatus === 'all' || item.status === filterStatus
+    return matchesSearch && matchesFilter
+  })
+
   return (
-    <div className="inventory">
+    <div className="inventory-page">
       <div className="page-header">
-        <div>
+        <div className="header-content">
           <h1>Blood Inventory</h1>
-          <p>Monitor and manage blood bank inventory levels</p>
+          <p>Real-time monitoring of blood bank stock levels</p>
+        </div>
+        <button className="btn-primary">
+          {Icons.plus}
+          <span>Add Stock</span>
+        </button>
+      </div>
+
+      <div className="stats-overview">
+        <div className="stat-card total">
+          <div className="stat-icon-wrapper">{Icons.droplet}</div>
+          <div className="stat-info">
+            <span className="stat-label">Total Units</span>
+            <span className="stat-value">{totalUnits}</span>
+          </div>
+          <div className="stat-trend positive">
+            {Icons.trendingUp}
+            <span>+12% this week</span>
+          </div>
+        </div>
+
+        <div className="stat-card critical">
+          <div className="stat-icon-wrapper">{Icons.alertTriangle}</div>
+          <div className="stat-info">
+            <span className="stat-label">Critical Alerts</span>
+            <span className="stat-value">{criticalCount}</span>
+          </div>
+          <div className="stat-trend negative">
+            <span>Action Required</span>
+          </div>
+        </div>
+
+        <div className="stat-card low">
+          <div className="stat-icon-wrapper">{Icons.clock}</div>
+          <div className="stat-info">
+            <span className="stat-label">Low Stock</span>
+            <span className="stat-value">{lowCount}</span>
+          </div>
+          <div className="stat-trend warning">
+            <span>Restock Soon</span>
+          </div>
+        </div>
+
+        <div className="stat-card good">
+          <div className="stat-icon-wrapper">{Icons.checkCircle}</div>
+          <div className="stat-info">
+            <span className="stat-label">Healthy Stock</span>
+            <span className="stat-value">{8 - criticalCount - lowCount}</span>
+          </div>
+          <div className="stat-trend positive">
+            <span>Optimal Levels</span>
+          </div>
         </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card stat-primary">
-          <div className="stat-icon">{Icons.droplet}</div>
-          <div className="stat-content">
-            <div className="stat-value">{totalUnits}</div>
-            <div className="stat-label">Total Units</div>
-          </div>
+      <div className="inventory-controls">
+        <div className="search-bar">
+          {Icons.search}
+          <input 
+            type="text" 
+            placeholder="Search blood type..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-
-        <div className="stat-card stat-danger">
-          <div className="stat-icon">{Icons.alertTriangle}</div>
-          <div className="stat-content">
-            <div className="stat-value">{criticalCount}</div>
-            <div className="stat-label">Critical Levels</div>
-          </div>
-        </div>
-
-        <div className="stat-card stat-warning">
-          <div className="stat-icon">{Icons.clock}</div>
-          <div className="stat-content">
-            <div className="stat-value">{lowCount}</div>
-            <div className="stat-label">Low Stock</div>
-          </div>
-        </div>
-
-        <div className="stat-card stat-success">
-          <div className="stat-icon">{Icons.checkCircle}</div>
-          <div className="stat-content">
-            <div className="stat-value">{8 - criticalCount - lowCount}</div>
-            <div className="stat-label">Adequate Stock</div>
-          </div>
+        <div className="filter-tabs">
+          <button 
+            className={`filter-tab ${filterStatus === 'all' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('all')}
+          >
+            All
+          </button>
+          <button 
+            className={`filter-tab ${filterStatus === 'critical' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('critical')}
+          >
+            Critical
+          </button>
+          <button 
+            className={`filter-tab ${filterStatus === 'low' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('low')}
+          >
+            Low
+          </button>
+          <button 
+            className={`filter-tab ${filterStatus === 'good' ? 'active' : ''}`}
+            onClick={() => setFilterStatus('good')}
+          >
+            Good
+          </button>
         </div>
       </div>
 
       <div className="inventory-grid">
-        {inventory.map(item => (
-          <div key={item.bloodType} className={`inventory-card ${getStatusClass(item.status)}`}>
-            <div className="inventory-header">
-              <div className="blood-type-large">{item.bloodType}</div>
-              <span className={`badge ${getStatusBadge(item.status)}`}>
-                {item.status}
-              </span>
-            </div>
-            <div className="inventory-body">
-              <div className="units-display">
-                <div className="units-number">{item.units}</div>
-                <div className="units-label">Units Available</div>
+        {filteredInventory.map(item => (
+          <div key={item.bloodType} className={`blood-card ${getStatusClass(item.status)}`}>
+            <div className="card-header">
+              <div className="blood-type-badge">
+                <span className="blood-type">{item.bloodType}</span>
               </div>
-              <div className="inventory-details">
-                <div className="detail-item">
-                  <span className="detail-label">Minimum Required:</span>
-                  <span className="detail-value">{item.minRequired} units</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Last Updated:</span>
-                  <span className="detail-value">{item.lastUpdated}</span>
-                </div>
+              <div className={`status-pill ${item.status}`}>
+                {getStatusLabel(item.status)}
               </div>
             </div>
-            <div className="inventory-footer">
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{
-                    width: `${Math.min((item.units / item.minRequired) * 100, 100)}%`
-                  }}
-                />
+            
+            <div className="card-body">
+              <div className="stock-level">
+                <span className="current-units">{item.units}</span>
+                <span className="unit-label">Units Available</span>
               </div>
-              <div className="progress-label">
-                {Math.round((item.units / item.minRequired) * 100)}% of minimum requirement
+              
+              <div className="progress-container">
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
+                    style={{ width: `${Math.min((item.units / item.minRequired) * 100, 100)}%` }}
+                  ></div>
+                </div>
+                <div className="progress-text">
+                  <span>{Math.round((item.units / item.minRequired) * 100)}% Capacity</span>
+                  <span>Min: {item.minRequired}</span>
+                </div>
               </div>
+
+              <div className="card-meta">
+                <div className="meta-item">
+                  <span className="meta-label">Last Updated</span>
+                  <span className="meta-value">{item.lastUpdated}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card-actions">
+              <button className="action-btn secondary">Update</button>
+              <button className="action-btn primary">Request</button>
             </div>
           </div>
         ))}

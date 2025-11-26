@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { donorService, notificationService } from '../services/firebaseService'
+import { Icons } from '../components/Icons'
 import './DonorList.css'
 
 function DonorList() {
@@ -11,6 +11,7 @@ function DonorList() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [viewMode, setViewMode] = useState('grid')
   
   // Message Modal State
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
@@ -70,6 +71,19 @@ function DonorList() {
     setFilteredDonors(filtered)
   }, [searchTerm, filterBloodType, filterStatus, donors])
 
+  // Stats Calculation
+  const stats = {
+    total: donors.length,
+    active: donors.filter(d => d.status === 'active').length,
+    oPositive: donors.filter(d => d.bloodType === 'O+').length,
+    newThisMonth: donors.filter(d => {
+      if (!d.createdAt) return false;
+      const date = new Date(d.createdAt.seconds * 1000);
+      const now = new Date();
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).length
+  }
+
   const handleMessageClick = (donor) => {
     setSelectedDonor(donor)
     setIsMessageModalOpen(true)
@@ -101,176 +115,258 @@ function DonorList() {
   }
 
   return (
-    <div className="donor-list">
-      <div className="page-header">
-        <div>
+    <div className="donor-list-page">
+      <div className="page-header-section">
+        <div className="header-content">
           <h1>Donor Management</h1>
           <p>Manage and track all registered blood donors</p>
         </div>
-        <Link to="/donors/add" className="btn btn-primary">
-          + Add New Donor
-        </Link>
       </div>
 
-      <div className="card filters-card">
-        <div className="filters">
-          <div className="search-box">
-            <input
-              type="text"
-              placeholder="Search donors by name, email, or phone..."
-              className="form-input"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon blue">{Icons.users}</div>
+          <div className="stat-info">
+            <span className="stat-label">Total Donors</span>
+            <span className="stat-value">{stats.total}</span>
           </div>
-          
-          <div className="filter-group">
-            <select
-              className="form-select"
-              value={filterBloodType}
-              onChange={(e) => setFilterBloodType(e.target.value)}
-            >
-              <option value="all">All Blood Types</option>
-              <option value="O+">O+</option>
-              <option value="O-">O-</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-            </select>
-
-            <select
-              className="form-select"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon green">{Icons.activity}</div>
+          <div className="stat-info">
+            <span className="stat-label">Active Donors</span>
+            <span className="stat-value">{stats.active}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon red">{Icons.droplet}</div>
+          <div className="stat-info">
+            <span className="stat-label">O+ Donors</span>
+            <span className="stat-value">{stats.oPositive}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon orange">{Icons.trendingUp}</div>
+          <div className="stat-info">
+            <span className="stat-label">New This Month</span>
+            <span className="stat-value">{stats.newThisMonth}</span>
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="table-header">
-          <div>
-            <h3>Total Donors: {filteredDonors.length}</h3>
-            {loading && <p style={{ fontSize: '13px', color: '#6b7280' }}>Loading donors from Firestore...</p>}
-            {error && <p className="error" style={{ color: '#dc2626', fontSize: '13px' }}>{error}</p>}
+      {/* Controls Bar */}
+      <div className="controls-bar">
+        <div className="search-wrapper">
+          {Icons.search}
+          <input 
+            type="text" 
+            placeholder="Search donors by name, email..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="filters-wrapper">
+          <select
+            className="custom-select"
+            value={filterBloodType}
+            onChange={(e) => setFilterBloodType(e.target.value)}
+          >
+            <option value="all">All Blood Types</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+
+          <select
+            className="custom-select"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          <div className="view-toggle">
+            <button 
+              className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Grid View"
+            >
+              {Icons.dashboard}
+            </button>
+            <button 
+              className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="List View"
+            >
+              {Icons.menu}
+            </button>
           </div>
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Contact</th>
-              <th>Blood Type</th>
-              <th>Status</th>
-              <th>Last Donation</th>
-              <th>Total Donations</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDonors.map(donor => (
-              <tr key={donor.id}>
-                <td>
-                  <div className="donor-name">{donor.name}</div>
-                  <div className="donor-meta">
-                    {donor.role && (
-                      <span className="role-pill">
-                        {donor.role === 'hospital' ? 'Hospital' : donor.role}
-                      </span>
-                    )}
-                    {donor.source === 'user' && (
-                      <span className="role-pill role-pill-muted">Website</span>
-                    )}
+      </div>
+
+      {/* Content Area */}
+      {loading ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading donors...</p>
+        </div>
+      ) : filteredDonors.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">{Icons.users}</div>
+          <h3>No donors found</h3>
+          <p>Try adjusting your filters</p>
+        </div>
+      ) : (
+        <>
+          {viewMode === 'grid' ? (
+            <div className="requests-grid">
+              {filteredDonors.map(donor => (
+                <div key={donor.id} className="request-card">
+                  <div className="card-header">
+                    <div className="patient-info">
+                      <h3>{donor.name}</h3>
+                      <span className="patient-age">{donor.email}</span>
+                    </div>
+                    <div className={`blood-type-badge ${donor.bloodType.replace('+', 'p').replace('-', 'n')}`}>
+                      {donor.bloodType}
+                    </div>
                   </div>
-                  {donor.hospitalName && (
-                    <div className="hospital-name">{donor.hospitalName}</div>
-                  )}
-                </td>
-                <td>
-                  <div className="contact-info">
-                    <div>{donor.email}</div>
-                    <div className="phone">{donor.phone}</div>
+                  
+                  <div className="card-body">
+                    <div className="info-row">
+                      <span className="label">Phone:</span>
+                      <span className="value">{donor.phone}</span>
+                    </div>
+                    <div className="info-row">
+                      <span className="label">Last Donation:</span>
+                      <span className="value">{donor.lastDonation || 'Never'}</span>
+                    </div>
+                    <div className="info-row">
+                      <span className="label">Total Donations:</span>
+                      <span className="value">{donor.totalDonations || 0}</span>
+                    </div>
                   </div>
-                </td>
-                <td>
-                  <span className="blood-type">{donor.bloodType}</span>
-                </td>
-                <td>
-                  <span className={`badge badge-${donor.status === 'active' ? 'success' : 'warning'}`}>
-                    {donor.status}
-                  </span>
-                </td>
-                <td>{donor.lastDonation || 'N/A'}</td>
-                <td>{typeof donor.totalDonations === 'number' ? donor.totalDonations : '—'}</td>
-                <td>
-                  <div className="action-buttons">
+
+                  <div className="card-footer">
+                    <span className={`status-pill ${donor.status === 'active' ? 'fulfilled' : 'rejected'}`}>
+                      {donor.status}
+                    </span>
                     <button 
-                      onClick={() => handleMessageClick(donor)} 
-                      className="btn-action btn-message"
-                      style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer' }}
+                      onClick={() => handleMessageClick(donor)}
+                      className="btn-icon-text"
                     >
-                      Message
+                      {Icons.send} Message
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        
-        {filteredDonors.length === 0 && (
-          <div className="no-results">
-            <p>No donors found matching your criteria</p>
-          </div>
-        )}
-      </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="requests-list-container">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Blood Type</th>
+                    <th>Status</th>
+                    <th>Last Donation</th>
+                    <th>Total</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDonors.map(donor => (
+                    <tr key={donor.id}>
+                      <td>
+                        <div className="cell-primary">{donor.name}</div>
+                        <div className="cell-secondary">
+                          {donor.role === 'hospital' ? 'Hospital Added' : 'Registered User'}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="cell-primary">{donor.phone}</div>
+                        <div className="cell-secondary">{donor.email}</div>
+                      </td>
+                      <td>
+                        <span className={`blood-badge-sm ${donor.bloodType.replace('+', 'p').replace('-', 'n')}`}>
+                          {donor.bloodType}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-dot ${donor.status === 'active' ? 'fulfilled' : 'rejected'}`}></span>
+                        {donor.status}
+                      </td>
+                      <td>{donor.lastDonation || 'N/A'}</td>
+                      <td>{donor.totalDonations || 0}</td>
+                      <td>
+                        <button 
+                          className="btn-icon"
+                          onClick={() => handleMessageClick(donor)}
+                          title="Send Message"
+                        >
+                          {Icons.send}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Message Modal */}
       {isMessageModalOpen && (
-        <div className="modal-overlay" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
-          justifyContent: 'center', alignItems: 'center', zIndex: 1000
-        }}>
-          <div className="modal-content" style={{
-            backgroundColor: 'white', padding: '24px', borderRadius: '8px',
-            width: '100%', maxWidth: '500px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{ marginTop: 0 }}>Message to {selectedDonor?.name}</h2>
-            <form onSubmit={handleSendMessage}>
-              <div className="form-group">
-                <label className="form-label">Subject</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={messageData.title}
-                  onChange={(e) => setMessageData({...messageData, title: e.target.value})}
-                  placeholder="Enter message subject"
-                  disabled={sending}
-                />
+        <div className="modal-overlay" onClick={() => setIsMessageModalOpen(false)}>
+          <div className="modern-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-modern">
+              <h2>Message to {selectedDonor?.name}</h2>
+              <button onClick={() => setIsMessageModalOpen(false)} className="close-btn-modern">
+                {Icons.x}
+              </button>
+            </div>
+            
+            <form onSubmit={handleSendMessage} className="create-form">
+              <div className="modal-body-scroll">
+                <div className="form-group">
+                  <label>Subject</label>
+                  <input
+                    type="text"
+                    required
+                    value={messageData.title}
+                    onChange={(e) => setMessageData({...messageData, title: e.target.value})}
+                    placeholder="Enter message subject"
+                    disabled={sending}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Message</label>
+                  <textarea
+                    rows="6"
+                    required
+                    value={messageData.body}
+                    onChange={(e) => setMessageData({...messageData, body: e.target.value})}
+                    placeholder="Type your message here..."
+                    disabled={sending}
+                  />
+                </div>
               </div>
-              <div className="form-group" style={{ marginTop: '16px' }}>
-                <label className="form-label">Message</label>
-                <textarea
-                  className="form-textarea"
-                  rows="4"
-                  value={messageData.body}
-                  onChange={(e) => setMessageData({...messageData, body: e.target.value})}
-                  placeholder="Type your message here..."
-                  disabled={sending}
-                />
-              </div>
-              <div className="form-actions" style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+
+              <div className="modal-footer-modern">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn-secondary-fill"
                   onClick={() => setIsMessageModalOpen(false)}
                   disabled={sending}
                 >
@@ -278,7 +374,7 @@ function DonorList() {
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className="btn-primary-fill"
                   disabled={sending}
                 >
                   {sending ? 'Sending...' : 'Send Message'}

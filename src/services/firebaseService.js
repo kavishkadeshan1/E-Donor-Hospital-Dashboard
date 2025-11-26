@@ -615,6 +615,49 @@ export const requestService = {
     )
     const snapshot = await getDocs(q)
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  },
+
+  // Delete blood request
+  delete: async (id) => {
+    if (!isConfigured) {
+      console.warn('Mock mode: Request not actually deleted. Add Firebase credentials.')
+      const index = mockData.requests.findIndex(r => r.id === id)
+      if (index !== -1) mockData.requests.splice(index, 1)
+      return { success: true }
+    }
+
+    // Delete from main requests collection
+    await deleteDoc(doc(db, COLLECTIONS.DONATION_REQUESTS, id))
+
+    // Also delete from blood_requests_feed (find by requestId)
+    try {
+      const feedQuery = query(
+        collection(db, COLLECTIONS.BLOOD_REQUESTS_FEED),
+        where('requestId', '==', id)
+      )
+      const feedSnapshot = await getDocs(feedQuery)
+      feedSnapshot.docs.forEach(async (feedDoc) => {
+        await deleteDoc(doc(db, COLLECTIONS.BLOOD_REQUESTS_FEED, feedDoc.id))
+      })
+    } catch (error) {
+      console.error('Failed to delete from blood_requests_feed', error)
+    }
+
+    // Also delete from blood_request_details (find by requestId)
+    try {
+      const detailsQuery = query(
+        collection(db, COLLECTIONS.BLOOD_REQUEST_DETAILS),
+        where('requestId', '==', id)
+      )
+      const detailsSnapshot = await getDocs(detailsQuery)
+      detailsSnapshot.docs.forEach(async (detailDoc) => {
+        await deleteDoc(doc(db, COLLECTIONS.BLOOD_REQUEST_DETAILS, detailDoc.id))
+      })
+    } catch (error) {
+      console.error('Failed to delete from blood_request_details', error)
+    }
+
+    return { success: true }
   }
 }
 

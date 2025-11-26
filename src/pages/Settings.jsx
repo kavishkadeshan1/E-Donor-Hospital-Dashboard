@@ -9,6 +9,7 @@ import { Icons } from '../components/Icons'
 import './Settings.css'
 
 function Settings() {
+  const [activeTab, setActiveTab] = useState('general')
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false
@@ -143,222 +144,326 @@ function Settings() {
     alert('Settings saved successfully!')
   }
 
+  const tabs = [
+    { id: 'general', label: 'General', icon: Icons.settings, description: 'Display & Preferences' },
+    { id: 'notifications', label: 'Notifications', icon: Icons.bell, description: 'Alerts & Emails' },
+    { id: 'security', label: 'Security', icon: Icons.user, description: 'Password & Auth' },
+    { id: 'system', label: 'System', icon: Icons.activity, description: 'Maintenance & Logs' }
+  ]
+
   return (
-    <div className="settings">
-      <div className="page-header">
-        <div>
+    <div className="settings-page">
+      <div className="settings-header-section">
+        <div className="header-content">
           <h1>Settings</h1>
-          <p>Manage application settings and preferences</p>
+          <p>Manage your dashboard preferences and account security</p>
         </div>
       </div>
 
-      <div className="card">
-        <h3>🎨 Appearance</h3>
-        <div className="settings-list">
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">Dark Mode</div>
-              <div className="setting-description">Switch between light and dark theme for comfortable viewing</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={darkMode}
-                onChange={handleDarkModeToggle}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>Notification Settings</h3>
-        <div className="settings-list">
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">Email Notifications</div>
-              <div className="setting-description">Receive email notifications for important updates</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.emailNotifications}
-                onChange={() => handleSettingChange('emailNotifications')}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">SMS Notifications</div>
-              <div className="setting-description">Receive SMS alerts for urgent matters</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.smsNotifications}
-                onChange={() => handleSettingChange('smsNotifications')}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">Urgent Alerts</div>
-              <div className="setting-description">Get notified about critical blood requests</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.urgentAlerts}
-                onChange={() => handleSettingChange('urgentAlerts')}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">Weekly Reports</div>
-              <div className="setting-description">Receive weekly summary reports</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.weeklyReports}
-                onChange={() => handleSettingChange('weeklyReports')}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">Donor Reminders</div>
-              <div className="setting-description">Send automatic reminders to donors</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.donorReminders}
-                onChange={() => handleSettingChange('donorReminders')}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>System Settings</h3>
-        <div className="settings-list">
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">Auto-Approve Requests</div>
-              <div className="setting-description">Automatically approve non-urgent blood requests</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.autoApproveRequests}
-                onChange={() => handleSettingChange('autoApproveRequests')}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-label">Maintenance Mode</div>
-              <div className="setting-description">Enable maintenance mode for system updates</div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={settings.maintenanceMode}
-                onChange={() => handleSettingChange('maintenanceMode')}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div className="form-actions">
-          <button onClick={handleSaveSettings} className="btn btn-primary">
-            Save Settings
-          </button>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>Change Password</h3>
-        <form onSubmit={handlePasswordSubmit} className="password-form">
-          {passwordError && (
-            <div className="alert alert-error">
-              <span className="alert-icon">{Icons.alertTriangle}</span>
-              {passwordError}
-            </div>
-          )}
-          {passwordSuccess && (
-            <div className="alert alert-success">
-              <span className="alert-icon">{Icons.check}</span>
-              {passwordSuccess}
-            </div>
-          )}
-          
-          <div className="form-group">
-            <label htmlFor="currentPassword" className="form-label">Current Password</label>
-            <input
-              type="password"
-              id="currentPassword"
-              name="currentPassword"
-              className="form-input"
-              value={passwordData.currentPassword}
-              onChange={handlePasswordChange}
-              required
-              disabled={passwordLoading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="newPassword" className="form-label">New Password</label>
-            <input
-              type="password"
-              id="newPassword"
-              name="newPassword"
-              className="form-input"
-              value={passwordData.newPassword}
-              onChange={handlePasswordChange}
-              required
-              disabled={passwordLoading}
-              minLength={6}
-            />
-            <span className="form-hint">Password must be at least 6 characters</span>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">Confirm New Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              className="form-input"
-              value={passwordData.confirmPassword}
-              onChange={handlePasswordChange}
-              required
-              disabled={passwordLoading}
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn btn-primary" disabled={passwordLoading}>
-              {passwordLoading ? 'Updating...' : 'Update Password'}
+      <div className="settings-layout">
+        <div className="settings-sidebar">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`settings-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <div className="tab-icon-wrapper">{tab.icon}</div>
+              <div className="tab-info">
+                <span className="tab-label">{tab.label}</span>
+                <span className="tab-desc">{tab.description}</span>
+              </div>
+              {activeTab === tab.id && <div className="active-indicator" />}
             </button>
-          </div>
-        </form>
+          ))}
+        </div>
+
+        <div className="settings-content-area">
+          {activeTab === 'general' && (
+            <div className="settings-section fade-in">
+              <div className="section-header">
+                <h2>General Settings</h2>
+                <p>Customize your dashboard experience</p>
+              </div>
+              
+              <div className="settings-card">
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box purple">
+                      {Icons.zap}
+                    </div>
+                    <div className="setting-text">
+                      <h3>Dark Mode</h3>
+                      <p>Switch between light and dark themes</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={darkMode}
+                      onChange={handleDarkModeToggle}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notifications' && (
+            <div className="settings-section fade-in">
+              <div className="section-header">
+                <h2>Notification Preferences</h2>
+                <p>Control how you receive updates</p>
+              </div>
+
+              <div className="settings-card">
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box blue">
+                      {Icons.inbox}
+                    </div>
+                    <div className="setting-text">
+                      <h3>Email Notifications</h3>
+                      <p>Receive updates via email</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.emailNotifications}
+                      onChange={() => handleSettingChange('emailNotifications')}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+
+                <div className="divider" />
+
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box green">
+                      {Icons.smartphone}
+                    </div>
+                    <div className="setting-text">
+                      <h3>SMS Notifications</h3>
+                      <p>Receive updates via SMS</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.smsNotifications}
+                      onChange={() => handleSettingChange('smsNotifications')}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+
+                <div className="divider" />
+
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box red">
+                      {Icons.alertTriangle}
+                    </div>
+                    <div className="setting-text">
+                      <h3>Urgent Alerts</h3>
+                      <p>Get notified immediately for urgent requests</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.urgentAlerts}
+                      onChange={() => handleSettingChange('urgentAlerts')}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+
+                <div className="divider" />
+
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box orange">
+                      {Icons.barChart}
+                    </div>
+                    <div className="setting-text">
+                      <h3>Weekly Reports</h3>
+                      <p>Receive weekly summary reports</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.weeklyReports}
+                      onChange={() => handleSettingChange('weeklyReports')}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+
+                <div className="divider" />
+
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box teal">
+                      {Icons.clock}
+                    </div>
+                    <div className="setting-text">
+                      <h3>Donor Reminders</h3>
+                      <p>Automatically send reminders to donors</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.donorReminders}
+                      onChange={() => handleSettingChange('donorReminders')}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="settings-section fade-in">
+              <div className="section-header">
+                <h2>Security Settings</h2>
+                <p>Manage your password and account security</p>
+              </div>
+
+              <div className="settings-card">
+                <h3>Change Password</h3>
+                <form onSubmit={handlePasswordSubmit} className="password-form">
+                  <div className="form-group">
+                    <label>Current Password</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="Enter current password"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>New Password</label>
+                      <div className="input-wrapper">
+                        <input
+                          type="password"
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordChange}
+                          placeholder="Enter new password"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Confirm New Password</label>
+                      <div className="input-wrapper">
+                        <input
+                          type="password"
+                          name="confirmPassword"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          placeholder="Confirm new password"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {passwordError && (
+                    <div className="alert error">
+                      {Icons.alertCircle}
+                      <span>{passwordError}</span>
+                    </div>
+                  )}
+
+                  {passwordSuccess && (
+                    <div className="alert success">
+                      {Icons.checkCircle}
+                      <span>{passwordSuccess}</span>
+                    </div>
+                  )}
+
+                  <div className="form-actions">
+                    <button 
+                      type="submit" 
+                      className="btn-primary"
+                      disabled={passwordLoading}
+                    >
+                      {passwordLoading ? 'Updating...' : 'Update Password'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'system' && (
+            <div className="settings-section fade-in">
+              <div className="section-header">
+                <h2>System Settings</h2>
+                <p>Manage system-wide configurations</p>
+              </div>
+
+              <div className="settings-card">
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box blue">
+                      {Icons.checkCircle}
+                    </div>
+                    <div className="setting-text">
+                      <h3>Auto-Approve Requests</h3>
+                      <p>Automatically approve blood requests from verified hospitals</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.autoApproveRequests}
+                      onChange={() => handleSettingChange('autoApproveRequests')}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+
+                <div className="divider" />
+
+                <div className="setting-row">
+                  <div className="setting-details">
+                    <div className="setting-icon-box red">
+                      {Icons.activity}
+                    </div>
+                    <div className="setting-text">
+                      <h3>Maintenance Mode</h3>
+                      <p>Temporarily disable the dashboard for maintenance</p>
+                    </div>
+                  </div>
+                  <label className="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.maintenanceMode}
+                      onChange={() => handleSettingChange('maintenanceMode')}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

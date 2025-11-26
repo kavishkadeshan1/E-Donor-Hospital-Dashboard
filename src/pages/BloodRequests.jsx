@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { requestService } from '../services/firebaseService'
+import { Icons } from '../components/Icons'
 import './BloodRequests.css'
 
 function BloodRequests() {
@@ -7,6 +8,8 @@ function BloodRequests() {
   const [filteredRequests, setFilteredRequests] = useState([])
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterBloodType, setFilterBloodType] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
 
   const baseRequestState = {
     patientName: '',
@@ -51,6 +54,12 @@ function BloodRequests() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newRequest, setNewRequest] = useState(() => buildInitialRequest())
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+
+  // Delete Confirmation Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [requestToDelete, setRequestToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     // Subscribe to real-time updates
@@ -73,8 +82,25 @@ function BloodRequests() {
       filtered = filtered.filter(req => req.bloodType === filterBloodType)
     }
 
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(req => 
+        req.patientName?.toLowerCase().includes(query) ||
+        req.hospital?.toLowerCase().includes(query) ||
+        req.medicalCondition?.toLowerCase().includes(query)
+      )
+    }
+
     setFilteredRequests(filtered)
-  }, [filterStatus, filterBloodType, requests])
+  }, [filterStatus, filterBloodType, searchQuery, requests])
+
+  // Stats Calculation
+  const stats = {
+    total: requests.length,
+    urgent: requests.filter(r => r.urgency === 'critical' || r.urgency === 'urgent').length,
+    pending: requests.filter(r => r.status === 'pending').length,
+    fulfilled: requests.filter(r => r.status === 'fulfilled').length
+  }
 
   const handleStatusChange = async (requestId, newStatus) => {
     try {
@@ -122,23 +148,54 @@ function BloodRequests() {
         date: new Date().toISOString().split('T')[0] // Current date YYYY-MM-DD
       })
 
+      setCreating(false)
       setShowCreateModal(false)
       setNewRequest(buildInitialRequest())
-      alert('Blood request sent successfully!')
+      
+      // Small delay to allow modal to close visually before showing success modal
+      setTimeout(() => {
+        setShowSuccessModal(true)
+      }, 100)
+
     } catch (error) {
       console.error('Error creating request:', error)
+      setCreating(false)
       const message = (error?.code === 'permission-denied' || (error?.message || '').toLowerCase().includes('insufficient permissions'))
         ? 'Permission denied when saving to Firestore. Update your Firestore security rules to allow hospital admins to write to donation_requests, blood_requests_feed, and blood_request_details.'
         : 'Failed to create request. Please try again.'
       alert(message)
-    } finally {
-      setCreating(false)
     }
   }
 
   const openRequestDetails = (request) => {
     setSelectedRequest(request)
     setShowModal(true)
+  }
+
+  const handleDeleteClick = (request, e) => {
+    if (e) e.stopPropagation()
+    setRequestToDelete(request)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!requestToDelete) return
+    setDeleting(true)
+    try {
+      await requestService.delete(requestToDelete.id)
+      setShowDeleteModal(false)
+      setRequestToDelete(null)
+      // Close the details modal if it's open
+      if (showModal && selectedRequest?.id === requestToDelete.id) {
+        setShowModal(false)
+        setSelectedRequest(null)
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error)
+      alert('Failed to delete request. Please try again.')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const formatLocation = (location = {}) => {
@@ -193,21 +250,64 @@ function BloodRequests() {
   }
 
   return (
-    <div className="blood-requests">
-      <div className="page-header">
-        <div>
+    <div className="blood-requests-page">
+      <div className="page-header-section">
+        <div className="header-content">
           <h1>Blood Requests</h1>
-          <p>Manage blood donation requests from patients</p>
+          <p>Manage and track blood donation requests</p>
         </div>
-        <button onClick={handleOpenCreateModal} className="btn btn-primary">
-          + New Request
+        <button onClick={handleOpenCreateModal} className="btn-primary-large">
+          {Icons.plus} New Request
         </button>
       </div>
 
-      <div className="card filters-card">
-        <div className="filters">
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon blue">{Icons.clipboardList}</div>
+          <div className="stat-info">
+            <span className="stat-label">Total Requests</span>
+            <span className="stat-value">{stats.total}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon red">{Icons.alertTriangle}</div>
+          <div className="stat-info">
+            <span className="stat-label">Urgent Needs</span>
+            <span className="stat-value">{stats.urgent}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon orange">{Icons.clock}</div>
+          <div className="stat-info">
+            <span className="stat-label">Pending</span>
+            <span className="stat-value">{stats.pending}</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon green">{Icons.checkCircle}</div>
+          <div className="stat-info">
+            <span className="stat-label">Fulfilled</span>
+            <span className="stat-value">{stats.fulfilled}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls Bar */}
+      <div className="controls-bar">
+        <div className="search-wrapper">
+          {Icons.search}
+          <input 
+            type="text" 
+            placeholder="Search patients, hospitals..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <div className="filters-wrapper">
           <select
-            className="form-select"
+            className="custom-select"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -219,7 +319,7 @@ function BloodRequests() {
           </select>
 
           <select
-            className="form-select"
+            className="custom-select"
             value={filterBloodType}
             onChange={(e) => setFilterBloodType(e.target.value)}
           >
@@ -233,191 +333,256 @@ function BloodRequests() {
             <option value="AB+">AB+</option>
             <option value="AB-">AB-</option>
           </select>
-        </div>
-      </div>
 
-      <div className="card">
-        <div className="table-header">
-          <h3>Total Requests: {filteredRequests.length}</h3>
-        </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Patient Name</th>
-              <th>Hospital</th>
-              <th>Blood Type</th>
-              <th>Units</th>
-              <th>Urgency</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRequests.map(request => (
-              <tr key={request.id}>
-                <td>
-                  <div className="patient-name">{request.patientName}</div>
-                </td>
-                <td>{request.hospital}</td>
-                <td>
-                  <span className="blood-type">{request.bloodType}</span>
-                </td>
-                <td>{request.units}</td>
-                <td>
-                  <span className={`badge ${getUrgencyBadgeClass(request.urgency)}`}>
-                    {request.urgency}
-                  </span>
-                </td>
-                <td>{request.date}</td>
-                <td>
-                  <span className={`badge ${getStatusBadgeClass(request.status)}`}>
-                    {request.status}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    onClick={() => openRequestDetails(request)}
-                    className="btn-action"
-                  >
-                    View
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {filteredRequests.length === 0 && (
-          <div className="no-results">
-            <p>No blood requests found matching your criteria</p>
+          <div className="view-toggle">
+            <button 
+              className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Grid View"
+            >
+              {Icons.dashboard}
+            </button>
+            <button 
+              className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="List View"
+            >
+              {Icons.menu}
+            </button>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Content Area */}
+      {filteredRequests.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">{Icons.inbox}</div>
+          <h3>No requests found</h3>
+          <p>Try adjusting your filters or create a new request</p>
+          <button onClick={handleOpenCreateModal} className="btn-secondary">
+            Create Request
+          </button>
+        </div>
+      ) : (
+        <>
+          {viewMode === 'grid' ? (
+            <div className="requests-grid">
+              {filteredRequests.map(request => (
+                <div key={request.id} className="request-card" onClick={() => openRequestDetails(request)}>
+                  <div className="card-header">
+                    <div className="patient-info">
+                      <h3>{request.patientName}</h3>
+                      <span className="patient-age">{request.patientAge} yrs • {request.medicalCondition}</span>
+                    </div>
+                    <div className={`blood-type-badge ${request.bloodType.replace('+', 'p').replace('-', 'n')}`}>
+                      {request.bloodType}
+                    </div>
+                  </div>
+                  
+                  <div className="card-body">
+                    <div className="info-row">
+                      <span className="label">Units:</span>
+                      <span className="value">{request.units}</span>
+                    </div>
+                    <div className="info-row">
+                      <span className="label">Hospital:</span>
+                      <span className="value">{request.hospital}</span>
+                    </div>
+                    <div className="info-row">
+                      <span className="label">Date:</span>
+                      <span className="value">{request.date}</span>
+                    </div>
+                  </div>
+
+                  <div className="card-footer">
+                    <span className={`status-pill ${request.status}`}>
+                      {request.status}
+                    </span>
+                    <span className={`urgency-pill ${request.urgency}`}>
+                      {request.urgency}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="requests-list-container">
+              <table className="modern-table">
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>Blood Type</th>
+                    <th>Units</th>
+                    <th>Hospital</th>
+                    <th>Urgency</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRequests.map(request => (
+                    <tr key={request.id}>
+                      <td>
+                        <div className="cell-primary">{request.patientName}</div>
+                        <div className="cell-secondary">{request.patientAge} yrs</div>
+                      </td>
+                      <td>
+                        <span className={`blood-badge-sm ${request.bloodType.replace('+', 'p').replace('-', 'n')}`}>
+                          {request.bloodType}
+                        </span>
+                      </td>
+                      <td>{request.units}</td>
+                      <td>{request.hospital}</td>
+                      <td>
+                        <span className={`badge-sm ${request.urgency}`}>
+                          {request.urgency}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-dot ${request.status}`}></span>
+                        {request.status}
+                      </td>
+                      <td>{request.date}</td>
+                      <td>
+                        <button 
+                          className="btn-icon"
+                          onClick={() => openRequestDetails(request)}
+                        >
+                          {Icons.arrowRight}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
 
       {showModal && selectedRequest && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Request Details</h2>
-              <button onClick={() => setShowModal(false)} className="close-btn">×</button>
+          <div className="modern-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-modern">
+              <div className="header-left">
+                <h2>Request Details</h2>
+                <span className={`id-badge`}>#{selectedRequest.id.slice(0, 6)}</span>
+              </div>
+              <button onClick={() => setShowModal(false)} className="close-btn-modern">
+                {Icons.x}
+              </button>
             </div>
-            <div className="modal-body request-modal-body">
-              <div className="request-hero">
-                <div>
-                  <p className="hero-label">Blood Type</p>
-                  <div className="hero-blood-type">{selectedRequest.bloodType}</div>
-                  <p className="hero-units">{selectedRequest.units} units needed</p>
+            
+            <div className="modal-body-scroll">
+              <div className="request-banner">
+                <div className="banner-main">
+                  <div className={`blood-type-large ${selectedRequest.bloodType.replace('+', 'p').replace('-', 'n')}`}>
+                    {selectedRequest.bloodType}
+                  </div>
+                  <div className="banner-info">
+                    <h3>{selectedRequest.patientName}</h3>
+                    <p>{selectedRequest.units} Units Required • {selectedRequest.urgency} Urgency</p>
+                  </div>
                 </div>
-                <div className="hero-meta">
-                  <span className={`priority-pill ${getPriorityClass(selectedRequest.priorityLevel || (selectedRequest.urgency === 'critical' ? 'critical' : selectedRequest.urgency === 'urgent' ? 'high' : 'normal'))}`}>
-                    {getPriorityLabel(selectedRequest.priorityLevel || (selectedRequest.urgency === 'critical' ? 'critical' : selectedRequest.urgency === 'urgent' ? 'high' : 'normal'))}
-                  </span>
-                  <span className={`badge ${getUrgencyBadgeClass(selectedRequest.urgency)}`}>
-                    {selectedRequest.urgency}
-                  </span>
-                  <span className={`badge ${getStatusBadgeClass(selectedRequest.status)}`}>
+                <div className="banner-status">
+                  <span className={`status-badge-large ${selectedRequest.status}`}>
                     {selectedRequest.status}
                   </span>
                 </div>
               </div>
 
-              <div className="details-section">
-                <div className="section-title">Patient Information</div>
-                <div className="details-grid">
-                  <div className="detail-card">
-                    <label>Patient Name</label>
-                    <p>{selectedRequest.patientName}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Age</label>
-                    <p>{selectedRequest.patientAge ? `${selectedRequest.patientAge} years` : 'Not provided'}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Medical Condition</label>
-                    <p>{selectedRequest.medicalCondition || 'Not provided'}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Patient Status</label>
-                    <p>{selectedRequest.patientStatus || 'Not provided'}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Requested On</label>
-                    <p>{selectedRequest.date}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Source</label>
-                    <p>{selectedRequest.source === 'hospital_dashboard' ? 'Hospital Dashboard' : (selectedRequest.source || 'Unknown')}</p>
+              <div className="details-grid-modern">
+                <div className="detail-section">
+                  <h4>Patient Information</h4>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <label>Age</label>
+                      <p>{selectedRequest.patientAge ? `${selectedRequest.patientAge} years` : 'N/A'}</p>
+                    </div>
+                    <div className="info-item">
+                      <label>Condition</label>
+                      <p>{selectedRequest.medicalCondition || 'N/A'}</p>
+                    </div>
+                    <div className="info-item">
+                      <label>Status</label>
+                      <p>{selectedRequest.patientStatus || 'N/A'}</p>
+                    </div>
+                    <div className="info-item full">
+                      <label>Medical Notes</label>
+                      <p className="notes-text">{selectedRequest.notes || 'No notes provided.'}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="detail-card full-width">
-                  <label>Medical Notes</label>
-                  <p>{selectedRequest.notes || 'No medical notes provided.'}</p>
-                </div>
-              </div>
 
-              <div className="details-section">
-                <div className="section-title">Hospital Information</div>
-                <div className="details-grid">
-                  <div className="detail-card">
-                    <label>Hospital</label>
-                    <p>{selectedRequest.hospital}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Department</label>
-                    <p>{selectedRequest.hospitalDepartment || 'Not provided'}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Location</label>
-                    <p>{selectedRequest.hospitalLocationText || formatLocation(selectedRequest.hospitalLocation)}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Distance</label>
-                    <p>{selectedRequest.hospitalDistance || 'Not provided'}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Contact Person</label>
-                    <p>{selectedRequest.contactPerson || 'Not provided'}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Contact Phone</label>
-                    <p>{selectedRequest.contactPhone || selectedRequest.hospitalPhone || 'Not provided'}</p>
-                  </div>
-                  <div className="detail-card">
-                    <label>Contact Email</label>
-                    <p>{selectedRequest.hospitalEmail || 'Not provided'}</p>
+                <div className="detail-section">
+                  <h4>Hospital Details</h4>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <label>Hospital Name</label>
+                      <p>{selectedRequest.hospital}</p>
+                    </div>
+                    <div className="info-item">
+                      <label>Department</label>
+                      <p>{selectedRequest.hospitalDepartment || 'N/A'}</p>
+                    </div>
+                    <div className="info-item">
+                      <label>Contact</label>
+                      <p>{selectedRequest.contactPerson || 'N/A'}</p>
+                    </div>
+                    <div className="info-item">
+                      <label>Phone</label>
+                      <p>{selectedRequest.contactPhone || 'N/A'}</p>
+                    </div>
+                    <div className="info-item full">
+                      <label>Location</label>
+                      <p>{selectedRequest.hospitalLocationText || formatLocation(selectedRequest.hospitalLocation)}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              {selectedRequest.status === 'pending' && (
-                <>
-                  <button
-                    onClick={() => handleStatusChange(selectedRequest.id, 'approved')}
-                    className="btn btn-success"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(selectedRequest.id, 'rejected')}
-                    className="btn btn-danger"
-                  >
-                    Reject
-                  </button>
-                </>
-              )}
-              {selectedRequest.status === 'approved' && (
+
+            <div className="modal-footer-modern">
+              <div className="footer-left">
                 <button
-                  onClick={() => handleStatusChange(selectedRequest.id, 'fulfilled')}
-                  className="btn btn-success"
+                  onClick={() => handleDeleteClick(selectedRequest)}
+                  className="btn-danger-outline"
                 >
-                  Mark as Fulfilled
+                  {Icons.x} Delete
                 </button>
-              )}
-              <button onClick={() => setShowModal(false)} className="btn btn-secondary">
-                Close
-              </button>
+              </div>
+              <div className="footer-right">
+                {selectedRequest.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => handleStatusChange(selectedRequest.id, 'rejected')}
+                      className="btn-secondary-fill"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(selectedRequest.id, 'approved')}
+                      className="btn-success-fill"
+                    >
+                      Approve
+                    </button>
+                  </>
+                )}
+                {selectedRequest.status === 'approved' && (
+                  <button
+                    onClick={() => handleStatusChange(selectedRequest.id, 'fulfilled')}
+                    className="btn-primary-fill"
+                  >
+                    Mark as Fulfilled
+                  </button>
+                )}
+                {selectedRequest.status !== 'pending' && selectedRequest.status !== 'approved' && (
+                   <button onClick={() => setShowModal(false)} className="btn-secondary-fill">
+                     Close
+                   </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -426,208 +591,244 @@ function BloodRequests() {
       {/* Create Request Modal */}
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+          <div className="modern-modal large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-modern">
               <h2>New Blood Request</h2>
-              <button onClick={() => setShowCreateModal(false)} className="close-btn">×</button>
+              <button onClick={() => setShowCreateModal(false)} className="close-btn-modern">
+                {Icons.x}
+              </button>
             </div>
-            <form onSubmit={handleCreateRequest}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label">Patient Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    required
-                    value={newRequest.patientName}
-                    onChange={(e) => setNewRequest({...newRequest, patientName: e.target.value})}
-                  />
-                </div>
-
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Patient Age</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      min="0"
-                      required
-                      value={newRequest.patientAge}
-                      onChange={(e) => setNewRequest({...newRequest, patientAge: e.target.value})}
-                    />
+            <form onSubmit={handleCreateRequest} className="create-form">
+              <div className="modal-body-scroll">
+                <div className="form-section">
+                  <h3>Patient Details</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Patient Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={newRequest.patientName}
+                        onChange={(e) => setNewRequest({...newRequest, patientName: e.target.value})}
+                        placeholder="Full Name"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Age</label>
+                      <input
+                        type="number"
+                        min="0"
+                        required
+                        value={newRequest.patientAge}
+                        onChange={(e) => setNewRequest({...newRequest, patientAge: e.target.value})}
+                        placeholder="Years"
+                      />
+                    </div>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Medical Condition</label>
+                    <label>Medical Condition</label>
                     <input
                       type="text"
-                      className="form-input"
                       required
                       value={newRequest.medicalCondition}
                       onChange={(e) => setNewRequest({...newRequest, medicalCondition: e.target.value})}
+                      placeholder="e.g. Surgery, Accident, Anemia"
                     />
                   </div>
                 </div>
 
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Blood Type</label>
-                    <select
-                      className="form-select"
-                      value={newRequest.bloodType}
-                      onChange={(e) => setNewRequest({...newRequest, bloodType: e.target.value})}
-                    >
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                    </select>
+                <div className="form-section">
+                  <h3>Blood Requirements</h3>
+                  <div className="form-row three-col">
+                    <div className="form-group">
+                      <label>Blood Type</label>
+                      <select
+                        value={newRequest.bloodType}
+                        onChange={(e) => setNewRequest({...newRequest, bloodType: e.target.value})}
+                      >
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Units</label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={newRequest.units}
+                        onChange={(e) => setNewRequest({...newRequest, units: e.target.value})}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Urgency</label>
+                      <select
+                        value={newRequest.urgency}
+                        onChange={(e) => setNewRequest({...newRequest, urgency: e.target.value})}
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                    </div>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Units Needed</label>
+                    <label>Medical Notes</label>
+                    <textarea
+                      rows="3"
+                      value={newRequest.notes}
+                      onChange={(e) => setNewRequest({...newRequest, notes: e.target.value})}
+                      placeholder="Additional details about the request..."
+                    />
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h3>Hospital & Contact</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Department</label>
+                      <input
+                        type="text"
+                        value={newRequest.hospitalDepartment}
+                        onChange={(e) => setNewRequest({...newRequest, hospitalDepartment: e.target.value})}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Contact Person</label>
+                      <input
+                        type="text"
+                        required
+                        value={newRequest.contactPerson}
+                        onChange={(e) => setNewRequest({...newRequest, contactPerson: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Contact Phone</label>
                     <input
-                      type="number"
-                      className="form-input"
-                      min="1"
+                      type="tel"
                       required
-                      value={newRequest.units}
-                      onChange={(e) => setNewRequest({...newRequest, units: e.target.value})}
+                      value={newRequest.contactPhone}
+                      onChange={(e) => setNewRequest({...newRequest, contactPhone: e.target.value})}
                     />
                   </div>
                 </div>
-
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Urgency</label>
-                    <select
-                      className="form-select"
-                      value={newRequest.urgency}
-                      onChange={(e) => setNewRequest({...newRequest, urgency: e.target.value})}
-                    >
-                      <option value="normal">Normal</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="critical">Critical</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Priority Tag</label>
-                    <select
-                      className="form-select"
-                      value={newRequest.priorityLevel}
-                      onChange={(e) => setNewRequest({...newRequest, priorityLevel: e.target.value})}
-                    >
-                      <option value="normal">Normal Priority</option>
-                      <option value="high">High Priority</option>
-                      <option value="critical">Critical Priority</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Patient Status Label</label>
-                  <select
-                    className="form-select"
-                    value={newRequest.patientStatus}
-                    onChange={(e) => setNewRequest({...newRequest, patientStatus: e.target.value})}
-                  >
-                    <option value="Urgent - Active">Urgent - Active</option>
-                    <option value="Awaiting Donor Match">Awaiting Donor Match</option>
-                    <option value="Stabilized - Pending Transfusion">Stabilized - Pending Transfusion</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Medical Notes</label>
-                  <textarea
-                    className="form-textarea"
-                    rows="3"
-                    value={newRequest.notes}
-                    onChange={(e) => setNewRequest({...newRequest, notes: e.target.value})}
-                  />
-                </div>
-
-                <hr className="form-divider" />
-                <h4 className="form-section-title">Hospital Information</h4>
-
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Department</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={newRequest.hospitalDepartment}
-                      onChange={(e) => setNewRequest({...newRequest, hospitalDepartment: e.target.value})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Location</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={newRequest.hospitalLocationText}
-                      onChange={(e) => setNewRequest({...newRequest, hospitalLocationText: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label className="form-label">Distance from Donor</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. 2.1 km"
-                      value={newRequest.hospitalDistance}
-                      onChange={(e) => setNewRequest({...newRequest, hospitalDistance: e.target.value})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Contact Person</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      required
-                      value={newRequest.contactPerson}
-                      onChange={(e) => setNewRequest({...newRequest, contactPerson: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Contact Phone</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    required
-                    value={newRequest.contactPhone}
-                    onChange={(e) => setNewRequest({...newRequest, contactPhone: e.target.value})}
-                  />
-                </div>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                  This request will be saved to the hospital dashboard and pushed to the donor app feed with your hospital contact and address details.
-                </p>
               </div>
-              <div className="modal-footer">
+
+              <div className="modal-footer-modern">
                 <button 
                   type="button" 
                   onClick={() => setShowCreateModal(false)} 
-                  className="btn btn-secondary"
+                  className="btn-secondary-fill"
                   disabled={creating}
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  className="btn btn-primary"
+                  className="btn-primary-fill"
                   disabled={creating}
                 >
                   {creating ? 'Sending...' : 'Send Request'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="modal-overlay" style={{ zIndex: 2100 }}>
+          <div className="modern-modal" style={{ maxWidth: '400px', padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ 
+                width: '72px', 
+                height: '72px', 
+                borderRadius: '50%', 
+                background: '#dcfce7', 
+                color: '#16a34a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1.5rem',
+                boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)'
+              }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Request Sent!</h2>
+              <p style={{ color: 'var(--text-light)', fontSize: '1rem', lineHeight: '1.5', marginBottom: '2rem' }}>
+                Your blood request has been successfully broadcasted to all eligible donors.
+              </p>
+              <button 
+                onClick={() => setShowSuccessModal(false)}
+                className="btn-primary-fill"
+                style={{ width: '100%', padding: '1rem', fontSize: '1rem' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && requestToDelete && (
+        <div className="modal-overlay" style={{ zIndex: 2100 }}>
+          <div className="modern-modal" style={{ maxWidth: '420px', padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ 
+                width: '72px', 
+                height: '72px', 
+                borderRadius: '50%', 
+                background: '#fee2e2', 
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1.5rem',
+                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)'
+              }}>
+                {Icons.alertTriangle}
+              </div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-dark)', marginBottom: '0.5rem' }}>Delete Request?</h2>
+              <p style={{ color: 'var(--text-light)', fontSize: '1rem', lineHeight: '1.5', marginBottom: '0.5rem' }}>
+                Are you sure you want to delete the blood request for <strong>{requestToDelete.patientName}</strong>?
+              </p>
+              <p style={{ color: '#dc2626', fontSize: '0.875rem', marginBottom: '2rem' }}>
+                This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                <button 
+                  onClick={() => {
+                    setShowDeleteModal(false)
+                    setRequestToDelete(null)
+                  }}
+                  className="btn-secondary-fill"
+                  style={{ flex: 1, padding: '1rem', fontSize: '1rem' }}
+                  disabled={deleting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleConfirmDelete}
+                  className="btn-danger-fill"
+                  style={{ flex: 1, padding: '1rem', fontSize: '1rem' }}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
