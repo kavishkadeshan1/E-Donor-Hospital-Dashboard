@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { notificationService } from '../services/firebaseService'
 import { Icons } from '../components/Icons'
+import { sanitizeInput } from '../lib/sanitize'
 import './SendNotification.css'
 
 function SendNotification() {
@@ -64,9 +65,10 @@ function SendNotification() {
   ]
 
   const handleChange = (e) => {
+    const value = e.target.type === 'select-one' ? e.target.value : sanitizeInput(e.target.value)
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     })
     setSuccess(false)
     setError('')
@@ -190,7 +192,7 @@ function SendNotification() {
             {Icons.users}
           </div>
           <div className="stat-content">
-            <div className="stat-value">1,245</div>
+            <div className="stat-value">{loadingUsers ? '...' : users.length}</div>
             <div className="stat-label">Active Users</div>
           </div>
         </div>

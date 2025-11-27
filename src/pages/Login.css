@@ -176,9 +176,10 @@
   font-size: 1rem;
   background-color: #ffffff !important;
   transition: all 0.2s ease;
-  color: #1f2937;
+  color: #000000 !important;
   box-shadow: none;
   box-sizing: border-box;
+  -webkit-text-fill-color: #000000 !important;
 }
 
 .input-wrapper:has(.input-icon) .form-input {
@@ -201,8 +202,16 @@
 .form-input:-webkit-autofill:hover,
 .form-input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px white inset !important;
-  -webkit-text-fill-color: #1f2937 !important;
+  -webkit-text-fill-color: #000000 !important;
   background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Ensure password input text is visible */
+input[type="password"].form-input,
+input[type="text"].form-input {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
 }
 
 .password-toggle {

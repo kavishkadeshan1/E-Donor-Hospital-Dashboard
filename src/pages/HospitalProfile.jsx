@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { hospitalService } from '../services/firebaseService'
 import { Icons } from '../components/Icons'
+import { sanitizeInput } from '../lib/sanitize'
 import './HospitalProfile.css'
 
 function HospitalProfile() {
@@ -73,7 +74,7 @@ function HospitalProfile() {
   const handleChange = (e) => {
     setProfileData({
       ...profileData,
-      [e.target.name]: e.target.value
+      [e.target.name]: sanitizeInput(e.target.value)
     })
   }
 

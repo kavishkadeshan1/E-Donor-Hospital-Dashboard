@@ -311,3 +311,11 @@ textarea.form-control {
 [data-theme="dark"] .template-item:hover {
   background: var(--card-bg);
 }
+
+[data-theme="dark"] .form-group label {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .card-header h2 {
+  color: #ffffff;
+}

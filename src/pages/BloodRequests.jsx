@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { requestService } from '../services/firebaseService'
 import { Icons } from '../components/Icons'
+import { sanitizeInput } from '../lib/sanitize'
 import './BloodRequests.css'
 
 function BloodRequests() {
@@ -609,7 +610,7 @@ function BloodRequests() {
                         type="text"
                         required
                         value={newRequest.patientName}
-                        onChange={(e) => setNewRequest({...newRequest, patientName: e.target.value})}
+                        onChange={(e) => setNewRequest({...newRequest, patientName: sanitizeInput(e.target.value)})}
                         placeholder="Full Name"
                       />
                     </div>
@@ -631,7 +632,7 @@ function BloodRequests() {
                       type="text"
                       required
                       value={newRequest.medicalCondition}
-                      onChange={(e) => setNewRequest({...newRequest, medicalCondition: e.target.value})}
+                      onChange={(e) => setNewRequest({...newRequest, medicalCondition: sanitizeInput(e.target.value)})}
                       placeholder="e.g. Surgery, Accident, Anemia"
                     />
                   </div>
@@ -683,7 +684,7 @@ function BloodRequests() {
                     <textarea
                       rows="3"
                       value={newRequest.notes}
-                      onChange={(e) => setNewRequest({...newRequest, notes: e.target.value})}
+                      onChange={(e) => setNewRequest({...newRequest, notes: sanitizeInput(e.target.value)})}
                       placeholder="Additional details about the request..."
                     />
                   </div>
@@ -697,7 +698,7 @@ function BloodRequests() {
                       <input
                         type="text"
                         value={newRequest.hospitalDepartment}
-                        onChange={(e) => setNewRequest({...newRequest, hospitalDepartment: e.target.value})}
+                        onChange={(e) => setNewRequest({...newRequest, hospitalDepartment: sanitizeInput(e.target.value)})}
                       />
                     </div>
                     <div className="form-group">
@@ -706,7 +707,7 @@ function BloodRequests() {
                         type="text"
                         required
                         value={newRequest.contactPerson}
-                        onChange={(e) => setNewRequest({...newRequest, contactPerson: e.target.value})}
+                        onChange={(e) => setNewRequest({...newRequest, contactPerson: sanitizeInput(e.target.value)})}
                       />
                     </div>
                   </div>
@@ -716,7 +717,7 @@ function BloodRequests() {
                       type="tel"
                       required
                       value={newRequest.contactPhone}
-                      onChange={(e) => setNewRequest({...newRequest, contactPhone: e.target.value})}
+                      onChange={(e) => setNewRequest({...newRequest, contactPhone: sanitizeInput(e.target.value)})}
                     />
                   </div>
                 </div>

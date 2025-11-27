@@ -636,11 +636,13 @@ export const requestService = {
         where('requestId', '==', id)
       )
       const feedSnapshot = await getDocs(feedQuery)
-      feedSnapshot.docs.forEach(async (feedDoc) => {
-        await deleteDoc(doc(db, COLLECTIONS.BLOOD_REQUESTS_FEED, feedDoc.id))
-      })
+      const feedDeletePromises = feedSnapshot.docs.map((feedDoc) => 
+        deleteDoc(doc(db, COLLECTIONS.BLOOD_REQUESTS_FEED, feedDoc.id))
+      )
+      await Promise.all(feedDeletePromises)
     } catch (error) {
       console.error('Failed to delete from blood_requests_feed', error)
+      // Don't throw - main record is already deleted
     }
 
     // Also delete from blood_request_details (find by requestId)
@@ -650,11 +652,13 @@ export const requestService = {
         where('requestId', '==', id)
       )
       const detailsSnapshot = await getDocs(detailsQuery)
-      detailsSnapshot.docs.forEach(async (detailDoc) => {
-        await deleteDoc(doc(db, COLLECTIONS.BLOOD_REQUEST_DETAILS, detailDoc.id))
-      })
+      const detailsDeletePromises = detailsSnapshot.docs.map((detailDoc) => 
+        deleteDoc(doc(db, COLLECTIONS.BLOOD_REQUEST_DETAILS, detailDoc.id))
+      )
+      await Promise.all(detailsDeletePromises)
     } catch (error) {
       console.error('Failed to delete from blood_request_details', error)
+      // Don't throw - main record is already deleted
     }
 
     return { success: true }

@@ -5,6 +5,7 @@ import './Login.css'
 
 import { hospitalService } from '../services/firebaseService'
 import { auth, isConfigured } from '../lib/firebase'
+import { sanitizeInput } from '../lib/sanitize'
 
 function Login({ onLogin }) {
   const navigate = useNavigate()
@@ -19,7 +20,7 @@ function Login({ onLogin }) {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: sanitizeInput(e.target.value)
     })
     setError('')
   }
