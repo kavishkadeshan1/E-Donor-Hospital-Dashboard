@@ -33,7 +33,7 @@ function DashboardEnhanced() {
     }
 
     loadDashboardData()
-    
+
     // Set up real-time listeners
     const unsubscribeInventory = inventoryService.subscribe((data) => {
       setInventory(data)
@@ -41,8 +41,8 @@ function DashboardEnhanced() {
     })
 
     const unsubscribeRequests = requestService.subscribe((data) => {
-      const urgent = data.filter(r => 
-        (r.urgency === 'critical' || r.urgency === 'urgent') && 
+      const urgent = data.filter(r =>
+        (r.urgency === 'critical' || r.urgency === 'urgent') &&
         r.status === 'pending'
       ).slice(0, 5)
       setUrgentRequests(urgent)
@@ -57,7 +57,7 @@ function DashboardEnhanced() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      
+
       // Load stats
       const statsData = await dashboardService.getStats()
       setStats(statsData)
@@ -206,58 +206,6 @@ function DashboardEnhanced() {
 
       {/* Main Content Grid */}
       <div className="dashboard-main-grid">
-        {/* Left Column: Charts */}
-        <div className="charts-column">
-          <div className="chart-section">
-            <div className="chart-header">
-              <h2>Weekly Donation Trends</h2>
-            </div>
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer>
-                <AreaChart data={weeklyTrends}>
-                  <defs>
-                    <linearGradient id="colorDonations" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#dc2626" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                  />
-                  <Area type="monotone" dataKey="donations" stroke="#dc2626" fillOpacity={1} fill="url(#colorDonations)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="chart-section">
-            <div className="chart-header">
-              <h2>Blood Type Distribution</h2>
-            </div>
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer>
-                <BarChart data={bloodTypeDistribution}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip 
-                    cursor={{ fill: 'transparent' }}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                  />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {bloodTypeDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
         {/* Right Column: Activity */}
         <div className="activity-column">
           {/* Urgent Requests */}

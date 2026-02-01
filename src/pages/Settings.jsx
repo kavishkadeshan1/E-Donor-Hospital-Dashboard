@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { auth, isConfigured } from '../lib/firebase'
-import { 
-  EmailAuthProvider, 
-  reauthenticateWithCredential, 
-  updatePassword 
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword
 } from 'firebase/auth'
 import { Icons } from '../components/Icons'
 import './Settings.css'
@@ -101,12 +101,12 @@ function Settings() {
         user.email,
         passwordData.currentPassword
       )
-      
+
       await reauthenticateWithCredential(user, credential)
-      
+
       // Update to new password
       await updatePassword(user, passwordData.newPassword)
-      
+
       setPasswordSuccess('Password changed successfully!')
       setPasswordData({
         currentPassword: '',
@@ -115,7 +115,7 @@ function Settings() {
       })
     } catch (error) {
       console.error('Password change error:', error)
-      
+
       switch (error.code) {
         case 'auth/wrong-password':
           setPasswordError('Current password is incorrect')
@@ -185,7 +185,7 @@ function Settings() {
                 <h2>General Settings</h2>
                 <p>Customize your dashboard experience</p>
               </div>
-              
+
               <div className="settings-card">
                 <div className="setting-row">
                   <div className="setting-details">
@@ -198,8 +198,8 @@ function Settings() {
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={darkMode}
                       onChange={handleDarkModeToggle}
                     />
@@ -229,8 +229,8 @@ function Settings() {
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={settings.emailNotifications}
                       onChange={() => handleSettingChange('emailNotifications')}
                     />
@@ -251,8 +251,8 @@ function Settings() {
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={settings.smsNotifications}
                       onChange={() => handleSettingChange('smsNotifications')}
                     />
@@ -273,8 +273,8 @@ function Settings() {
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={settings.urgentAlerts}
                       onChange={() => handleSettingChange('urgentAlerts')}
                     />
@@ -295,8 +295,8 @@ function Settings() {
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={settings.weeklyReports}
                       onChange={() => handleSettingChange('weeklyReports')}
                     />
@@ -317,8 +317,8 @@ function Settings() {
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={settings.donorReminders}
                       onChange={() => handleSettingChange('donorReminders')}
                     />
@@ -398,8 +398,8 @@ function Settings() {
                   )}
 
                   <div className="form-actions">
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="btn-primary"
                       disabled={passwordLoading}
                     >
@@ -425,13 +425,13 @@ function Settings() {
                       {Icons.checkCircle}
                     </div>
                     <div className="setting-text">
-                      <h3>Auto-Approve Requests</h3>
+                      <h3>Auto-Approve Requestss</h3>
                       <p>Automatically approve blood requests from verified hospitals</p>
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={settings.autoApproveRequests}
                       onChange={() => handleSettingChange('autoApproveRequests')}
                     />
@@ -452,8 +452,8 @@ function Settings() {
                     </div>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={settings.maintenanceMode}
                       onChange={() => handleSettingChange('maintenanceMode')}
                     />

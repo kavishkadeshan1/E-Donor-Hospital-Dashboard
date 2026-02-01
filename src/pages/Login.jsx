@@ -170,8 +170,8 @@ function Login({ onLogin }) {
                   placeholder="Enter your password"
                   className="form-input"
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
                 >
