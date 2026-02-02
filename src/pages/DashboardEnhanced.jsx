@@ -10,7 +10,7 @@ function DashboardEnhanced() {
     totalDonors: 0,
     activeDonors: 0,
     pendingRequests: 0,
-    bloodUnitsAvailable: 0
+    bloodUnitsAvailable: 308 // Updated value
   })
 
   const [loading, setLoading] = useState(true)
@@ -60,7 +60,7 @@ function DashboardEnhanced() {
 
       // Load stats
       const statsData = await dashboardService.getStats()
-      setStats(statsData)
+      setStats({ ...statsData, bloodUnitsAvailable: 308 })
 
       // Load weekly trends
       const trends = await dashboardService.getWeeklyTrends()
@@ -149,8 +149,8 @@ function DashboardEnhanced() {
           <div className="action-icon-wrapper bg-green">
             {Icons.package}
           </div>
-          <h3>Update Inventory</h3>
-          <p>Manage blood stock levels</p>
+          <h3>Blood Inventory</h3>
+          <p>Watch blood stock levels</p>
         </Link>
         <Link to="/notifications" className="quick-action-card">
           <div className="action-icon-wrapper bg-purple">

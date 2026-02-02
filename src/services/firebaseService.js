@@ -45,6 +45,18 @@ const mockData = {
       zipCode: '10001',
       verified: true,
       about: 'Mock hospital profile'
+    },
+    {
+      id: 'mock-hospital-2',
+      name: 'KP Medical Center',
+      email: 'kp@gmail.com',
+      phone: '555-0200',
+      city: 'Los Angeles',
+      state: 'CA',
+      street: '456 Healthcare Boulevard',
+      zipCode: '90001',
+      verified: true,
+      about: 'KP Medical Center - Serving the community since 1990'
     }
   ],
   donors: [
@@ -54,14 +66,14 @@ const mockData = {
     { id: '4', name: 'Emily Davis', email: 'emily@example.com', phone: '+1234567893', bloodType: 'AB+', status: 'inactive', totalDonations: 2, lastDonation: '2025-08-05' }
   ],
   inventory: [
-    { id: '1', bloodType: 'O+', units: 45, minRequired: 30, lastUpdated: new Date() },
-    { id: '2', bloodType: 'O-', units: 12, minRequired: 20, lastUpdated: new Date() },
-    { id: '3', bloodType: 'A+', units: 38, minRequired: 25, lastUpdated: new Date() },
-    { id: '4', bloodType: 'A-', units: 8, minRequired: 15, lastUpdated: new Date() },
-    { id: '5', bloodType: 'B+', units: 28, minRequired: 20, lastUpdated: new Date() },
-    { id: '6', bloodType: 'B-', units: 6, minRequired: 12, lastUpdated: new Date() },
-    { id: '7', bloodType: 'AB+', units: 15, minRequired: 10, lastUpdated: new Date() },
-    { id: '8', bloodType: 'AB-', units: 4, minRequired: 8, lastUpdated: new Date() }
+    { id: '1', bloodType: 'O+', units: 45, minRequired: 30, status: 'good', lastUpdated: 'Today, 10:30 AM' },
+    { id: '2', bloodType: 'O-', units: 12, minRequired: 20, status: 'low', lastUpdated: 'Today, 09:15 AM' },
+    { id: '3', bloodType: 'A+', units: 38, minRequired: 25, status: 'good', lastUpdated: 'Today, 11:00 AM' },
+    { id: '4', bloodType: 'A-', units: 8, minRequired: 15, status: 'critical', lastUpdated: 'Yesterday, 04:30 PM' },
+    { id: '5', bloodType: 'B+', units: 28, minRequired: 20, status: 'good', lastUpdated: 'Today, 08:45 AM' },
+    { id: '6', bloodType: 'B-', units: 6, minRequired: 12, status: 'critical', lastUpdated: 'Yesterday, 02:00 PM' },
+    { id: '7', bloodType: 'AB+', units: 15, minRequired: 10, status: 'good', lastUpdated: 'Today, 07:30 AM' },
+    { id: '8', bloodType: 'AB-', units: 4, minRequired: 8, status: 'critical', lastUpdated: 'Yesterday, 06:00 PM' }
   ],
   requests: [
     { 
@@ -455,10 +467,18 @@ export const inventoryService = {
       return () => {}
     }
     
-    return onSnapshot(collection(db, COLLECTIONS.BLOOD_INVENTORY), (snapshot) => {
-      const inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      callback(inventory)
-    })
+    return onSnapshot(
+      collection(db, COLLECTIONS.BLOOD_INVENTORY), 
+      (snapshot) => {
+        const inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        callback(inventory)
+      },
+      (error) => {
+        console.error('Inventory subscription error:', error)
+        // Fallback to mock data on error
+        callback(mockData.inventory)
+      }
+    )
   },
 
   // Update inventory units

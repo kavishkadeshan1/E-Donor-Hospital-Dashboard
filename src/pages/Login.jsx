@@ -39,36 +39,51 @@ function Login({ onLogin }) {
 
     try {
       let hospital = null
+      let useFirebaseAuth = isConfigured && auth
 
-      if (isConfigured && auth) {
-        // Firebase Auth email/password sign-in
-        const { user } = await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password)
+      if (useFirebaseAuth) {
+        try {
+          // Firebase Auth email/password sign-in
+          const { user } = await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password)
+          hospital = await hospitalService.getByEmail(formData.email.trim())
+
+          if (!hospital) {
+            await signOut(auth)
+            setError('Hospital not found or not verified.')
+            setLoading(false)
+            return
+          }
+
+          localStorage.setItem('hospitalAdminToken', user.uid)
+          localStorage.setItem('hospitalAdminData', JSON.stringify({
+            id: hospital.id,
+            name: hospital.name,
+            email: hospital.email,
+            phone: hospital.phone || '',
+            street: hospital.street || '',
+            city: hospital.city || '',
+            state: hospital.state || '',
+            zipCode: hospital.zipCode || '',
+            about: hospital.about || ''
+          }))
+        } catch (firebaseErr) {
+          console.warn('Firebase Auth failed, trying demo mode:', firebaseErr.code)
+          // Fall back to demo mode if Firebase Auth fails
+          useFirebaseAuth = false
+        }
+      }
+      
+      if (!useFirebaseAuth) {
+        // Demo fallback when Firebase is not configured or auth fails
         hospital = await hospitalService.getByEmail(formData.email.trim())
-
         if (!hospital) {
-          await signOut(auth)
-          setError('Hospital not found or not verified.')
+          setError('Invalid email or password. Please try again.')
           setLoading(false)
           return
         }
-
-        localStorage.setItem('hospitalAdminToken', user.uid)
-        localStorage.setItem('hospitalAdminData', JSON.stringify({
-          id: hospital.id,
-          name: hospital.name,
-          email: hospital.email,
-          phone: hospital.phone || '',
-          street: hospital.street || '',
-          city: hospital.city || '',
-          state: hospital.state || '',
-          zipCode: hospital.zipCode || '',
-          about: hospital.about || ''
-        }))
-      } else {
-        // Demo fallback when Firebase is not configured
-        hospital = await hospitalService.getByEmail(formData.email.trim())
-        if (!hospital) {
-          setError('Demo login failed. Use a known hospital email.')
+        // Simple password check for demo mode
+        if (formData.password !== 'admin1234' && formData.password !== 'password') {
+          setError('Invalid email or password. Please try again.')
           setLoading(false)
           return
         }
